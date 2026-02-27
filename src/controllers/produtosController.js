@@ -1,4 +1,4 @@
-import ExemploModel from '../models/UsuarioModel.js';
+import ProdutosModels from '../models/ProdutosModels.js';
 
 export const criar = async (req, res) => {
     try {
@@ -6,14 +6,15 @@ export const criar = async (req, res) => {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
         }
 
-        const { nome, estatus, preco } = req.body;
+        const { nome, descricao, categoria, preco, disponivel, itens } = req.body;
 
         if (!nome) return res.status(400).json({ error: 'O campo "nome" é obrigatório!' });
-        if (preco === undefined || preco === null)
+
+        if (preco <= 0)
             return res.status(400).json({ error: 'O campo "preco" é obrigatório!' });
 
-        const exemplo = new ExemploModel({ nome, estatus, preco: parseFloat(preco) });
-        const data = await exemplo.criar();
+        const produtos = new ProdutosModels({ nome, descricao, categoria, preco: parseFloat(preco), disponivel: disponivel === 'true', itens });
+        const data = await produtos.criar();
 
         res.status(201).json({ message: 'Registro criado com sucesso!', data });
     } catch (error) {
@@ -24,7 +25,7 @@ export const criar = async (req, res) => {
 
 export const buscarTodos = async (req, res) => {
     try {
-        const registros = await ExemploModel.buscarTodos(req.query);
+        const registros = await ProdutosModels.buscarTodos(req.query);
 
         if (!registros || registros.length === 0) {
             return res.status(200).json({ message: 'Nenhum registro encontrado.' });
@@ -45,13 +46,13 @@ export const buscarPorId = async (req, res) => {
             return res.status(400).json({ error: 'O ID enviado não é um número válido.' });
         }
 
-        const exemplo = await ExemploModel.buscarPorId(parseInt(id));
+        const produto = await ProdutosModels.buscarPorId(parseInt(id));
 
-        if (!exemplo) {
+        if (!produto) {
             return res.status(404).json({ error: 'Registro não encontrado.' });
         }
 
-        res.json({ data: exemplo });
+        res.json({ data: produto });
     } catch (error) {
         console.error('Erro ao buscar:', error);
         res.status(500).json({ error: 'Erro ao buscar registro.' });
@@ -68,15 +69,17 @@ export const atualizar = async (req, res) => {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
         }
 
-        const exemplo = await ExemploModel.buscarPorId(parseInt(id));
+        const produto = await ProdutosModels.buscarPorId(parseInt(id));
 
-        if (!exemplo) {
+        if (!produto) {
             return res.status(404).json({ error: 'Registro não encontrado para atualizar.' });
         }
 
-        if (req.body.nome !== undefined) exemplo.nome = req.body.nome;
-        if (req.body.estatus !== undefined) exemplo.estatus = req.body.estatus;
-        if (req.body.preco !== undefined) exemplo.preco = parseFloat(req.body.preco);
+        if (req.body.nome !== undefined)produto.nome = req.body.nome;
+        if (req.body.descricao !== undefined) produto.descricao = req.body.descricao;
+        if (req.body.categoria !== undefined) produto.categoria = req.body.categoria;
+        if (req.body.preco !== undefined) produto.preco = parseFloat(req.body.preco);
+        if (req.body.disponivel !== undefined) produto.descricao = req.body.descricao;
 
         const data = await exemplo.atualizar();
 
