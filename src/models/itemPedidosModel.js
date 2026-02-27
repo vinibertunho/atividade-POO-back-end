@@ -1,32 +1,35 @@
 import prisma from '../utils/prismaClient.js';
 
-export default class ExemploModel {
-    constructor({ id = null, nome = null, estatus = true, preco = null } = {}) {
+export default class itemPedidoModel {
+    constructor({ id = null, pedidoId = null, produtoId = true, quantidade = null, precoUnitario = null } = {}) {
         this.id = id;
-        this.nome = nome;
-        this.estatus = estatus;
-        this.preco = preco;
+        this.pedidoId = pedidoId;
+        this.produtoId = produtoId;
+        this.quantidade = quantidade;
+        this.precoUnitario = precoUnitario
     }
 
     async criar() {
-        return prisma.exemplo.create({
+        return prisma.itemPedido.create({
             data: {
-                nome: this.nome,
-                estatus: this.estatus,
-                preco: this.preco,
+                pedidoId: this.pedidoId,
+                produtoId: this.produtoId,
+                quantidade: this.quantidade,
+                precoUnitario: this.precoUnitario
+
             },
         });
     }
 
     async atualizar() {
-        return prisma.exemplo.update({
+        return prisma.itemPedido.update({
             where: { id: this.id },
             data: { nome: this.nome, estatus: this.estatus, preco: this.preco },
         });
     }
 
     async deletar() {
-        return prisma.exemplo.delete({ where: { id: this.id } });
+        return prisma.itemPedido.delete({ where: { id: this.id } });
     }
 
     static async buscarTodos(filtros = {}) {
@@ -36,12 +39,12 @@ export default class ExemploModel {
         if (filtros.estatus !== undefined) where.estatus = filtros.estatus === 'true';
         if (filtros.preco !== undefined) where.preco = parseFloat(filtros.preco);
 
-        return prisma.exemplo.findMany({ where });
+        return prisma.itemPedido.findMany({ where });
     }
 
     static async buscarPorId(id) {
-        const data = await prisma.exemplo.findUnique({ where: { id } });
+        const data = await prisma.itemPedido.findUnique({ where: { id } });
         if (!data) return null;
-        return new ExemploModel(data);
+        return new itemPedidoModel(data);
     }
 }
