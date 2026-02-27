@@ -1,27 +1,71 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
+}
+
+enum Categoria {
+  LANCHE
+  BEBIDA
+  SOBREMESA
+  COMBO
 }
 
 model Usuario {
-    id       String @id @default(uuid())
-    nome     String
-    telefone String @unique
-    email    String @unique
-    cpf      String @unique
+  id         String   @id @default(uuid())
+  nome       String
+  telefone   String   @unique
+  email      String   @unique
+  cpf        String   @unique
+  cep        String
+  logradouro String?
+  bairro     String?
+  localidade String?
+  uf         String?
+  ativo      Boolean  @default(true)
+  pedidos    Pedido[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-    cep        String
-    logradouro String
-    bairro     String
-    localidade String
-    uf         String
+  @@map("usuarios")
+}
 
-    ativo     Boolean  @default(true)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+model Produto {
+  id         String       @id @default(uuid())
+  nome       String
+  descricao  String?
+  categoria  Categoria
+  preco      Decimal      @db.Decimal(10, 2)
+  disponivel Boolean      @default(true)
+  itens      ItemPedido[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
-    @@map("usuarios")
+  @@map("produtos")
+}
+
+model Pedido {
+  id        String       @id @default(uuid())
+  total     Decimal      @db.Decimal(10, 2)
+  status    String       @default("PENDENTE")
+  usuario   Usuario      @relation(fields: [usuarioId], references: [id])
+  usuarioId String
+  itens     ItemPedido[]
+  createdAt DateTime     @default(now())
+
+  @@map("pedidos")
+}
+
+model ItemPedido {
+  id         String  @id @default(uuid())
+  quantidade Int
+  precoUnit  Decimal @db.Decimal(10, 2)
+  pedido     Pedido  @relation(fields: [pedidoId], references: [id])
+  pedidoId   String
+  produto    Produto @relation(fields: [produtoId], references: [id])
+  produtoId  String
+
+  @@map("itens_pedidos")
 }
