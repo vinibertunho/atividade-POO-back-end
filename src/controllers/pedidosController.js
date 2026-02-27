@@ -1,4 +1,6 @@
-import ExemploModel from '../models/UsuarioModel.js';
+import PedidosModel from '../models/PedidosModels.js';
+
+const STATUS_VALIDOS = ['ABERTO', 'PAGO', 'CANCELADO'];
 
 export const criar = async (req, res) => {
     try {
@@ -6,34 +8,44 @@ export const criar = async (req, res) => {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
         }
 
-        const { nome, estatus, preco } = req.body;
+        const { clienteId, total, status } = req.body;
 
-        if (!nome) return res.status(400).json({ error: 'O campo "nome" é obrigatório!' });
-        if (preco === undefined || preco === null)
-            return res.status(400).json({ error: 'O campo "preco" é obrigatório!' });
+        if (!clienteId)
+            return res.status(400).json({ error: 'O campo "clienteId" é obrigatório!' });
+        if (total !== undefined)
+            return res.status(400).json({ error: 'O campo "total" é calculado automaticamente.' });
+        if (status !== undefined && status !== 'ABERTO') {
+            return res.status(400).json({ error: 'Pedido deve iniciar obrigatoriamente com status ABERTO.' });
+        }
+        if (status && !STATUS_VALIDOS.includes(status)) {
+            return res.status(400).json({ error: 'Status inválido. Use: ABERTO, PAGO ou CANCELADO.' });
+        }
 
-        const exemplo = new ExemploModel({ nome, estatus, preco: parseFloat(preco) });
-        const data = await exemplo.criar();
+        const pedido = new PedidosModel({
+            clienteId,
+            status: 'ABERTO',
+        });
+        const data = await pedido.criar();
 
-        res.status(201).json({ message: 'Registro criado com sucesso!', data });
+        res.status(201).json({ message: 'Pedido criado com sucesso!', data });
     } catch (error) {
         console.error('Erro ao criar:', error);
-        res.status(500).json({ error: 'Erro interno ao salvar o registro.' });
+        res.status(500).json({ error: 'Erro interno ao salvar o pedido.' });
     }
 };
 
 export const buscarTodos = async (req, res) => {
     try {
-        const registros = await ExemploModel.buscarTodos(req.query);
+        const registros = await PedidosModel.buscarTodos(req.query);
 
         if (!registros || registros.length === 0) {
-            return res.status(200).json({ message: 'Nenhum registro encontrado.' });
+            return res.status(200).json({ message: 'Nenhum pedido encontrado.' });
         }
 
         res.json(registros);
     } catch (error) {
         console.error('Erro ao buscar:', error);
-        res.status(500).json({ error: 'Erro ao buscar registros.' });
+        res.status(500).json({ error: 'Erro ao buscar pedidos.' });
     }
 };
 
@@ -41,20 +53,16 @@ export const buscarPorId = async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (isNaN(id)) {
-            return res.status(400).json({ error: 'O ID enviado não é um número válido.' });
+        const pedido = await PedidosModel.buscarPorId(id);
+
+        if (!pedido) {
+            return res.status(404).json({ error: 'Pedido não encontrado.' });
         }
 
-        const exemplo = await ExemploModel.buscarPorId(parseInt(id));
-
-        if (!exemplo) {
-            return res.status(404).json({ error: 'Registro não encontrado.' });
-        }
-
-        res.json({ data: exemplo });
+        res.json({ data: pedido });
     } catch (error) {
         console.error('Erro ao buscar:', error);
-        res.status(500).json({ error: 'Erro ao buscar registro.' });
+        res.status(500).json({ error: 'Erro ao buscar pedido.' });
     }
 };
 
@@ -62,28 +70,39 @@ export const atualizar = async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
-
         if (!req.body) {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
         }
 
-        const exemplo = await ExemploModel.buscarPorId(parseInt(id));
+        const pedido = await PedidosModel.buscarPorId(id);
 
-        if (!exemplo) {
-            return res.status(404).json({ error: 'Registro não encontrado para atualizar.' });
+        if (!pedido) {
+            return res.status(404).json({ error: 'Pedido não encontrado para atualizar.' });
         }
 
-        if (req.body.nome !== undefined) exemplo.nome = req.body.nome;
-        if (req.body.estatus !== undefined) exemplo.estatus = req.body.estatus;
-        if (req.body.preco !== undefined) exemplo.preco = parseFloat(req.body.preco);
+        if (req.body.total !== undefined) {
+            return res.status(400).json({ error: 'O campo "total" é calculado automaticamente com base nos itens.' });
+        }
 
-        const data = await exemplo.atualizar();
+        if (req.body.clienteId !== undefined) pedido.clienteId = req.body.clienteId;
+        if (req.body.status !== undefined) {
+            if (!STATUS_VALIDOS.includes(req.body.status)) {
+                return res.status(400).json({ error: 'Status inválido. Use: ABERTO, PAGO ou CANCELADO.' });
+            }
 
-        res.json({ message: `O registro "${data.nome}" foi atualizado com sucesso!`, data });
+            if (req.body.status === 'CANCELADO' && pedido.status !== 'ABERTO') {
+                return res.status(400).json({ error: 'Só é possível cancelar pedido com status ABERTO.' });
+            }
+
+            pedido.status = req.body.status;
+        }
+
+        const data = await pedido.atualizar();
+
+        res.json({ message: 'Pedido atualizado com sucesso!', data });
     } catch (error) {
         console.error('Erro ao atualizar:', error);
-        res.status(500).json({ error: 'Erro ao atualizar registro.' });
+        res.status(500).json({ error: 'Erro ao atualizar pedido.' });
     }
 };
 
@@ -91,22 +110,20 @@ export const deletar = async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
+        const pedido = await PedidosModel.buscarPorId(id);
 
-        const exemplo = await ExemploModel.buscarPorId(parseInt(id));
-
-        if (!exemplo) {
-            return res.status(404).json({ error: 'Registro não encontrado para deletar.' });
+        if (!pedido) {
+            return res.status(404).json({ error: 'Pedido não encontrado para deletar.' });
         }
 
-        await exemplo.deletar();
+        await pedido.deletar();
 
         res.json({
-            message: `O registro "${exemplo.nome}" foi deletado com sucesso!`,
-            deletado: exemplo,
+            message: 'Pedido deletado com sucesso!',
+            deletado: pedido,
         });
     } catch (error) {
         console.error('Erro ao deletar:', error);
-        res.status(500).json({ error: 'Erro ao deletar registro.' });
+        res.status(500).json({ error: 'Erro ao deletar pedido.' });
     }
 };

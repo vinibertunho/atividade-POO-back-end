@@ -1,47 +1,91 @@
 import prisma from '../utils/prismaClient.js';
 
-export default class ExemploModel {
-    constructor({ id = null, nome = null, estatus = true, preco = null } = {}) {
+export default class PedidosModel {
+    constructor({
+        id = null,
+        clientId = null,
+        total = null,
+        status = 'ABERTO',
+        criadoEm = null,
+    } = {}) {
         this.id = id;
-        this.nome = nome;
-        this.estatus = estatus;
-        this.preco = preco;
+        this.clientId = clientId;
+        this.total = total;
+        this.status = status;
+        this.criadoEm = criadoEm;
     }
 
     async criar() {
-        return prisma.exemplo.create({
+        return prisma.pedidos.create({
             data: {
-                nome: this.nome,
-                estatus: this.estatus,
-                preco: this.preco,
+                clientId: this.clientId,
+                total: 0,
+                status: 'ABERTO',
             },
         });
     }
 
     async atualizar() {
-        return prisma.exemplo.update({
+        const data = {};
+
+        if (this.clienteId !== null && this.clienteId !== undefined)
+            data.clienteId = this.clienteId;
+        if (this.status !== null && this.status !== undefined) data.status = this.status;
+
+        return prisma.pedido.update({
             where: { id: this.id },
-            data: { nome: this.nome, estatus: this.estatus, preco: this.preco },
+            data,
         });
     }
 
     async deletar() {
-        return prisma.exemplo.delete({ where: { id: this.id } });
+        return prisma.pedido.delete({ where: { id: this.id } });
     }
 
     static async buscarTodos(filtros = {}) {
         const where = {};
 
-        if (filtros.nome) where.nome = { contains: filtros.nome, mode: 'insensitive' };
-        if (filtros.estatus !== undefined) where.estatus = filtros.estatus === 'true';
-        if (filtros.preco !== undefined) where.preco = parseFloat(filtros.preco);
+        if (filtros.clienteId) where.clienteId = filtros.clienteId;
+        if (filtros.status) where.status = filtros.status;
 
-        return prisma.exemplo.findMany({ where });
+        return prisma.pedido.findMany({
+            where,
+            orderBy: { criadoEm: 'desc' },
+        });
+    }
+
+    static async buscarTodos(filtros = {}) {
+        const where = {};
+
+        if (filtros.clienteId) where.clienteId = filtros.clienteId;
+        if (filtros.status) where.status = filtros.status;
+
+        return prisma.pedido.findMany({
+            where,
+            orderBy: { criadoEm: 'desc' },
+        });
     }
 
     static async buscarPorId(id) {
-        const data = await prisma.exemplo.findUnique({ where: { id } });
+        const data = await prisma.pedido.findUnique({ where: { id } });
         if (!data) return null;
-        return new ExemploModel(data);
+        return new PedidosModel(data);
+    }
+
+    static async recalcularTotal(pedidoId) {
+        const itens = await prisma.itemPedido.findMany({
+            where: { pedidoId },
+            select: { quantidade: true, precoUnit: true },
+        });
+
+        const totalCalculado = itens.reduce((acumulado, item) => {
+            return acumulado + Number(item.precoUnit) * item.quantidade;
+        }, 0);
+
+        return prisma.pedido.update({
+            where: { id: pedidoId },
+            data: { total: totalCalculado },
+        });
     }
 }
+
