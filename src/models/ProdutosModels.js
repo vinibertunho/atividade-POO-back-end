@@ -1,7 +1,7 @@
 import prisma from '../utils/prismaClient.js';
 
 export default class ProdutosModels {
-    constructor({ id = Number, nome = String, descricao = String, categoria = categoria, preco = Decimal(10, 2), disponivel = true, itens = String } = {}) {
+    constructor({ id = null, nome = '', descricao = '', categoria = '', preco = 0, disponivel = true, itens = '' } = {}) {
         this.id = id;
         this.nome = nome;
         this.descricao = descricao;
@@ -19,7 +19,6 @@ export default class ProdutosModels {
 
         return await prisma.Produto.create({
             data: {
-              //  id: this.id,
                 nome: this.nome,
                 descricao: this.descricao,
                 categoria: this.categoria,
@@ -47,7 +46,8 @@ export default class ProdutosModels {
 
 
     async atualizar() {
-       if (!this.id) throw new Error ("Produto id é obrigatório atualizar")
+        if (!this.id) throw new Error("Produto id é obrigatório atualizar");
+
          if (this.preco <= 0) {
              throw new Error(`Produto não pode ser criado com o preco igual ou menor que 0!`);
          }
@@ -55,7 +55,6 @@ export default class ProdutosModels {
         return await prisma.Produto.update({
             where: { id: this.id },
              data: {
-                 id: this.id,
                  nome: this.nome,
                  descricao: this.descricao,
                  categoria: this.categoria,
@@ -64,8 +63,6 @@ export default class ProdutosModels {
                  itens: this.itens,
              },
          });
-
-
     }
 
     async deletar() {
@@ -99,7 +96,7 @@ export default class ProdutosModels {
     }
 
     static async buscarPorId(id) {
-        const data = await prisma.Produtos.findUnique({ where: { id } });
+        const data = await prisma.Produto.findUnique({ where: { id } });
         if (!data) return null;
         return new ProdutosModels(data);
     }
