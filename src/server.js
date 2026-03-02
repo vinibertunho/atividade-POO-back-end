@@ -1,6 +1,6 @@
 import express from 'express';
 import 'dotenv/config';
-import usuarioRoutes from '../src/routes/usuarioRoute.js';
+import usuarioRoute from '../src/routes/usuarioRoute.js';
 import pedidosRoute from '../src/routes/pedidosRoute.js';
 import produtosRoute from '../src/routes/produtosRoute.js';
 import itemPedidoRoute from '../src/routes/itemPedidoRoute.js';
@@ -51,7 +51,7 @@ app.get('/api/cep/:cep', async (req, res) => {
 });
 
 // Rotas
-app.use('/api', usuarioRoutes);
+app.use('/api', usuarioRoute);
 app.use('/api', pedidosRoute);
 app.use('/api', produtosRoute);
 app.use('/api', itemPedidoRoute);
