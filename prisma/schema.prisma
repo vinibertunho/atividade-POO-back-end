@@ -13,6 +13,12 @@ enum Categoria {
   COMBO
 }
 
+enum PedidoStatus {
+    ABERTO
+    PAGO
+    CANCELADO
+}
+
 model Usuario {
   id         String   @id @default(uuid())
   nome       String
