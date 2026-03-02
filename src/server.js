@@ -3,7 +3,7 @@ import 'dotenv/config';
 import usuarioRoutes from "../src/routes/usuarioRoute.js";
 import pedidosController from "../src/routes/pedidosRoute.js";
 import produtosController from "../src/routes/produtosRoute.js";
-import itemPedido from "../src/routes/itemPedidoRoute.js";
+import itemPedidoController from "../src/routes/itemPedidoRoute.js";
 
 const app = express();
 app.use(express.json());
