@@ -3,15 +3,11 @@ import prisma from '../utils/prismaClient.js';
 export default class UsuarioModel {
     constructor({
         id = null,
-        nome = null,
-        telefone = null,
-        email = null,
-        cpf = null,
-        cep = null,
-        logradouro = null,
-        bairro = null,
-        localidade = null,
-        uf = null,
+        nome,
+        telefone,
+        email,
+        cpf,
+        cep,
         ativo = true,
     } = {}) {
         this.id = id;
@@ -20,10 +16,6 @@ export default class UsuarioModel {
         this.email = email;
         this.cpf = cpf;
         this.cep = cep;
-        this.logradouro = logradouro;
-        this.bairro = bairro;
-        this.localidade = localidade;
-        this.uf = uf;
         this.ativo = ativo;
     }
 
