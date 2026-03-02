@@ -1,4 +1,4 @@
-import itemPedidoModel from '../models/itemPedidosModel.js';
+import itemPedidoModel from '../models/UsuarioModel.js';
 
 export const criar = async (req, res) => {
     try {
@@ -9,32 +9,28 @@ export const criar = async (req, res) => {
         const { pedidoId, produtoId, quantidade, precoUnitario } = req.body;
 
         if (!pedidoId) return res.status(400).json({ error: 'O campo "pedidoId" é obrigatório!' });
-        if (!produtoIdId)
-            return res.status(400).json({ error: 'O campo "produtoId" é obrigatório!' });
-        if (!precoUnitario)
-            return res.status(400).json({ error: 'O campo "pedidoId" é obrigatório!' });
 
-        const itemPedido = new itemPedidoModel(
-            null,
-            parseInt(pedidoId),
-            parseInt(produtoId),
-            parseInt(quantidade),
-            parseFloat(precoUnitario),
-        );
+        if (precoUnitario === undefined || precoUnitario === null)
+            return res.status(400).json({ error: 'O campo "precoUnitario" é obrigatório!' });
+
+        const itemPedido = new itemPedidoModel({
+            pedidoId,
+            produtoId,
+            quantidade,
+            precoUnitario: parseFloat(precoUnitario),
+        });
         const data = await itemPedido.criar();
 
-        res.status(201).json({ message: 'Item criado com sucesso!', data });
+        res.status(201).json({ message: 'Registro criado com sucesso!', data });
     } catch (error) {
         console.error('Erro ao criar:', error);
-        res.status(500).json({ error: 'Erro interno ao salvar o item.' });
+        res.status(500).json({ error: 'Erro interno ao salvar o registro.' });
     }
 };
 
 export const buscarTodos = async (req, res) => {
     try {
-        const itemPedido = await itemPedidoModel.buscarTodos(req.query);
-
-        const registros = await itemPedido.buscarTodos(req.query);
+        const registros = await itemPedidoModel.buscarTodos(req.query);
 
         if (!registros || registros.length === 0) {
             return res.status(200).json({ message: 'Nenhum registro encontrado.' });
@@ -55,14 +51,13 @@ export const buscarPorId = async (req, res) => {
             return res.status(400).json({ error: 'O ID enviado não é um número válido.' });
         }
 
-        const itemPedido = new itemPedidoModel(parseInt(id));
-        const data = await itemPedido.buscarPorId();
+        const itemPedido = await itemPedidoModel.buscarPorId(parseInt(id));
 
-        if (!data) {
+        if (!itemPedido) {
             return res.status(404).json({ error: 'Registro não encontrado.' });
         }
 
-        res.json({ data });
+        res.json({ data: itemPedido });
     } catch (error) {
         console.error('Erro ao buscar:', error);
         res.status(500).json({ error: 'Erro ao buscar registro.' });
@@ -79,19 +74,15 @@ export const atualizar = async (req, res) => {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
         }
 
-        const itemPedido = new itemPedidoModel(parseInt(id));
-        const exists = await itemPedido.buscarPorId();
-        if (!exists) {
-            return res.status(404).json({error: 'Registro não encontrado para atualizar'})
+        const itemPedido = await itemPedidoModel.buscarPorId(parseInt(id));
+
+        if (!itemPedido) {
+            return res.status(404).json({ error: 'Registro não encontrado para atualizar.' });
         }
 
-        if (req.body.pedidoId !== undefined) itemPedido.pedidoId = req.body.pedidoId;
-
-        if (req.body.produtoId !== undefined) itemPedido.produtoId = req.body.produtoId;
-
-        if (req.body.quantidade !== undefined) itemPedido.quantidade = req.body.quantidade;
-
-        if (req.body.precoUnitario !== undefined) itemPedido.precoUnitario = parseFloat(req.body.precoUnitario);
+        if (req.body.nome !== undefined) itemPedido.nome = req.body.nome;
+        if (req.body.estatus !== undefined) itemPedido.estatus = req.body.estatus;
+        if (req.body.preco !== undefined) itemPedido.preco = parseFloat(req.body.preco);
 
         const data = await itemPedido.atualizar();
 
@@ -108,18 +99,17 @@ export const deletar = async (req, res) => {
 
         if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
 
-        const itemPedido = new itemPedidoModel(parseInt(id));
-        const exists = await itemPedido.buscarPorId();
+        const itemPedido = await itemPedidoModel.buscarPorId(parseInt(id));
 
-        if (!exists) {
+        if (!itemPedido) {
             return res.status(404).json({ error: 'Registro não encontrado para deletar.' });
         }
 
         await itemPedido.deletar();
 
         res.json({
-            message: `O registro "${exists.nome}" foi deletado com sucesso!`,
-            deletado: exists,
+            message: `O registro "${itemPedido.pedidoId}" foi deletado com sucesso!`,
+            deletado: itemPedido,
         });
     } catch (error) {
         console.error('Erro ao deletar:', error);
