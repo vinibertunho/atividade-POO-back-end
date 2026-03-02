@@ -1,9 +1,9 @@
 import express from 'express';
 import 'dotenv/config';
 import usuarioRoutes from '../src/routes/usuarioRoute.js';
-import pedidosController from '../src/routes/pedidosRoute.js';
-import produtosController from '../src/routes/produtosRoute.js';
-import itemPedidoController from '../src/routes/itemPedidoRoute.js';
+import pedidosRoute from '../src/routes/pedidosRoute.js';
+import produtosRoute from '../src/routes/produtosRoute.js';
+import itemPedidoRoute from '../src/routes/itemPedidoRoute.js';
 
 const app = express();
 app.use(express.json());
@@ -52,6 +52,9 @@ app.get('/api/cep/:cep', async (req, res) => {
 
 // Rotas
 app.use('/api', usuarioRoutes);
+app.use('/api', pedidosRoute);
+app.use('/api', produtosRoute);
+app.use('/api', itemPedidoRoute);
 
 app.use((req, res) => {
     res.status(404).json({ error: 'Rota não encontrada' });
