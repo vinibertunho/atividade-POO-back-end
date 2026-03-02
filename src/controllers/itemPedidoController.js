@@ -8,8 +8,7 @@ export const criar = async (req, res) => {
 
         const { pedidoId, produtoId, quantidade, precoUnitario } = req.body;
 
-        if (!pedidoId) return res.status(400).json({ error: 'O campo "pedidoId" é obrigatório!' });
-        if (!produtoIdId)
+        if (!pedidoId) return res.status(400).json({ error: 'O campo "pedidoId" é obrigatório!' })
             return res.status(400).json({ error: 'O campo "produtoId" é obrigatório!' });
         if (!precoUnitario)
             return res.status(400).json({ error: 'O campo "pedidoId" é obrigatório!' });
