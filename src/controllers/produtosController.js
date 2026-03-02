@@ -79,9 +79,9 @@ export const atualizar = async (req, res) => {
         if (req.body.descricao !== undefined) produto.descricao = req.body.descricao;
         if (req.body.categoria !== undefined) produto.categoria = req.body.categoria;
         if (req.body.preco !== undefined) produto.preco = parseFloat(req.body.preco);
-        if (req.body.disponivel !== undefined) produto.descricao = req.body.descricao;
+        if (req.body.disponivel !== undefined) produto.disponivel = req.body.disponivel;
 
-        const data = await exemplo.atualizar();
+        const data = await produto.atualizar();
 
         res.json({ message: `O registro "${data.nome}" foi atualizado com sucesso!`, data });
     } catch (error) {
@@ -96,17 +96,17 @@ export const deletar = async (req, res) => {
 
         if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
 
-        const exemplo = await ExemploModel.buscarPorId(parseInt(id));
+        const produto = await ProdutosModels.buscarPorId(parseInt(id));
 
-        if (!exemplo) {
+        if (!produto) {
             return res.status(404).json({ error: 'Registro não encontrado para deletar.' });
         }
 
-        await exemplo.deletar();
+        await produto.deletar();
 
         res.json({
-            message: `O registro "${exemplo.nome}" foi deletado com sucesso!`,
-            deletado: exemplo,
+            message: `O registro "${produto.nome}" foi deletado com sucesso!`,
+            deletado: produto,
         });
     } catch (error) {
         console.error('Erro ao deletar:', error);
