@@ -44,13 +44,12 @@ export default class PedidosModel {
     static async buscarTodos(filtros = {}) {
         const where = {};
 
-        if (filtros.clientId) where.clientId = filtros.clientId;
-        if (filtros.status) where.status = filtros.status;
+        if (filtros.total) where.total = { contains: filtros.total, mode: 'insensitive' };
+        if (filtros.usuario) where.usuario = { contains: filtros.usuario, mode: 'insensitive' };
+        if (filtros.status) where.status = { contains: filtros.status, mode: 'insensitive' };
+       
 
-        return prisma.pedido.findMany({
-            where,
-            orderBy: { criadoEm: 'desc' },
-        });
+        return prisma.usuario.findMany({ where, orderBy: { id: 'asc' } });
     }
 
     static async buscarPorId(id) {

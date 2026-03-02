@@ -46,6 +46,8 @@ export const buscarTodos = async (req, res) => {
             return res.status(200).json({ message: 'Nenhum pedido encontrado.' });
         }
 
+       
+
         res.json(registros);
     } catch (error) {
         console.error('Erro ao buscar:', error);
@@ -137,4 +139,3 @@ export const deletar = async (req, res) => {
         res.status(500).json({ error: 'Erro ao deletar pedido.' });
     }
 };
-import prisma from '../utils/prismaClient.js';
