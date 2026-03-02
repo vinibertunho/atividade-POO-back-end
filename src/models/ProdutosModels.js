@@ -86,11 +86,28 @@ export default class ProdutosModels {
 
 
     static async buscarTodos(filtros = {}) {
+        const { nome, precoMin, precoMax, disponivel, categoria } = filtros;
         const where = {};
 
-        if (filtros.nome) where.nome = { contains: filtros.nome, mode: 'insensitive' };
-        if (filtros.estatus !== undefined) where.estatus = filtros.estatus === 'true';
-        if (filtros.preco !== undefined) where.preco = parseFloat(filtros.preco);
+        if (nome) {
+            where.nome = { contains: filtros.nome, mode: 'insensitive' };
+        }
+
+        if (categoria) {
+            where.categoria = filtros.categoria.toUpperCase();
+        }
+
+        if (disponivel !== undefined) {
+            where.disponivel = filtros.disponivel === 'true';
+        }
+
+        if (precoMin) {
+            where.preco = { gte: Number(precoMin) };
+        }
+
+        if (precoMax) {
+            where.preco = { lte: Number(precoMax) };
+        }
 
         return prisma.Produto.findMany({ where });
     }
