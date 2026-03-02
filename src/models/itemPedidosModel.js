@@ -1,7 +1,13 @@
 import prisma from '../utils/prismaClient.js';
 
 export default class itemPedidoModel {
-    constructor({ id, pedidoId, produtoId, quantidade, precoUnitario } = {}) {
+    constructor({
+        id = null,
+        pedidoId = null,
+        produtoId = null, // corrigido (antes estava true)
+        quantidade = null,
+        precoUnitario = null,
+    } = {}) {
         this.id = id;
         this.pedidoId = pedidoId;
         this.produtoId = produtoId;
@@ -30,7 +36,8 @@ export default class itemPedidoModel {
                 pedidoId: this.pedidoId,
                 produtoId: this.produtoId,
                 quantidade: this.quantidade,
-                precoUnitario: produto.preco,
+                precoUnitario: produto.preco
+
             },
         });
 
@@ -51,6 +58,7 @@ export default class itemPedidoModel {
                 pedidoId: this.pedidoId,
                 produtoId: this.produtoId,
                 quantidade: this.quantidade,
+                precoUnitario: this.precoUnitario,
             },
         });
     }
@@ -65,9 +73,14 @@ export default class itemPedidoModel {
     static async buscarTodos(filtros = {}) {
         const where = {};
 
-        if (filtros.nome) where.nome = { contains: filtros.nome, mode: 'insensitive' };
-        if (filtros.estatus !== undefined) where.estatus = filtros.estatus === 'true';
-        if (filtros.preco !== undefined) where.preco = parseFloat(filtros.preco);
+        if (filtros.pedidoId !== undefined) where.pedidoId = parseInt(filtros.pedidoId);
+
+        if (filtros.produtoId !== undefined) where.produtoId = parseInt(filtros.produtoId);
+
+        if (filtros.quantidade !== undefined) where.quantidade = parseInt(filtros.quantidade);
+
+        if (filtros.precoUnitario !== undefined)
+            where.precoUnitario = parseFloat(filtros.precoUnitario);
 
         return prisma.itemPedido.findMany({ where });
     }
