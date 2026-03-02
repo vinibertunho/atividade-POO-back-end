@@ -9,18 +9,18 @@ export const criar = async (req, res) => {
         const { pedidoId, produtoId, quantidade, precoUnitario } = req.body;
 
         if (!pedidoId) return res.status(400).json({ error: 'O campo "pedidoId" é obrigatório!' });
-        if (!produtoIdId)
+        if (!produtoId)
             return res.status(400).json({ error: 'O campo "produtoId" é obrigatório!' });
         if (!precoUnitario)
-            return res.status(400).json({ error: 'O campo "pedidoId" é obrigatório!' });
+            return res.status(400).json({ error: 'O campo "precoUnitario" é obrigatório!' });
 
-        const itemPedido = new itemPedidoModel(
-            null,
-            parseInt(pedidoId),
-            parseInt(produtoId),
-            parseInt(quantidade),
-            parseFloat(precoUnitario),
-        );
+        const itemPedido = new itemPedidoModel({
+            pedidoId: parseInt(pedidoId),
+            produtoId: parseInt(produtoId),
+            quantidade: parseInt(quantidade),
+            precoUnitario: parseFloat(precoUnitario),
+        });
+
         const data = await itemPedido.criar();
 
         res.status(201).json({ message: 'Item criado com sucesso!', data });
@@ -32,9 +32,7 @@ export const criar = async (req, res) => {
 
 export const buscarTodos = async (req, res) => {
     try {
-        const itemPedido = await itemPedidoModel.buscarTodos(req.query);
-
-        const registros = await itemPedido.buscarTodos(req.query);
+        const registros = await itemPedidoModel.buscarTodos(req.query);
 
         if (!registros || registros.length === 0) {
             return res.status(200).json({ message: 'Nenhum registro encontrado.' });
@@ -55,7 +53,7 @@ export const buscarPorId = async (req, res) => {
             return res.status(400).json({ error: 'O ID enviado não é um número válido.' });
         }
 
-        const itemPedido = new itemPedidoModel(parseInt(id));
+        const itemPedido = new itemPedidoModel({ id: parseInt(id) });
         const data = await itemPedido.buscarPorId();
 
         if (!data) {
@@ -75,27 +73,22 @@ export const atualizar = async (req, res) => {
 
         if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
 
-        if (!req.body) {
-            return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
-        }
-
-        const itemPedido = new itemPedidoModel(parseInt(id));
+        const itemPedido = new itemPedidoModel({ id: parseInt(id) });
         const exists = await itemPedido.buscarPorId();
+
         if (!exists) {
-            return res.status(404).json({error: 'Registro não encontrado para atualizar'})
+            return res.status(404).json({ error: 'Registro não encontrado para atualizar' });
         }
 
         if (req.body.pedidoId !== undefined) itemPedido.pedidoId = req.body.pedidoId;
-
         if (req.body.produtoId !== undefined) itemPedido.produtoId = req.body.produtoId;
-
         if (req.body.quantidade !== undefined) itemPedido.quantidade = req.body.quantidade;
-
-        if (req.body.precoUnitario !== undefined) itemPedido.precoUnitario = parseFloat(req.body.precoUnitario);
+        if (req.body.precoUnitario !== undefined)
+            itemPedido.precoUnitario = parseFloat(req.body.precoUnitario);
 
         const data = await itemPedido.atualizar();
 
-        res.json({ message: `O registro "${data.nome}" foi atualizado com sucesso!`, data });
+        res.json({ message: 'Registro atualizado com sucesso!', data });
     } catch (error) {
         console.error('Erro ao atualizar:', error);
         res.status(500).json({ error: 'Erro ao atualizar registro.' });
@@ -108,7 +101,7 @@ export const deletar = async (req, res) => {
 
         if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
 
-        const itemPedido = new itemPedidoModel(parseInt(id));
+        const itemPedido = new itemPedidoModel({ id: parseInt(id) });
         const exists = await itemPedido.buscarPorId();
 
         if (!exists) {
@@ -118,7 +111,7 @@ export const deletar = async (req, res) => {
         await itemPedido.deletar();
 
         res.json({
-            message: `O registro "${exists.nome}" foi deletado com sucesso!`,
+            message: 'Registro deletado com sucesso!',
             deletado: exists,
         });
     } catch (error) {
