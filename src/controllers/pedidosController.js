@@ -1,4 +1,4 @@
-import ExemploModel from '../models/UsuarioModel.js';
+import ExemploModel from '../models/PedidosModels.js';
 
 export const criar = async (req, res) => {
     try {
