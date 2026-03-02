@@ -1,5 +1,12 @@
 import UsuarioModel from '../models/UsuarioModel.js';
 
+
+const preencherEnderecoPorCep = async (cep) => {
+    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await response.json();
+    return data.erro ? null : data;
+};
+
 export const criar = async (req, res) => {
     try {
         if (!req.body) {
@@ -11,11 +18,27 @@ export const criar = async (req, res) => {
         if (!nome) return res.status(400).json({ error: 'O campo "nome" é obrigatório!' });
         if (!telefone) return res.status(400).json({ error: 'O campo "telefone" é obrigatório!' });
         if (!email) return res.status(400).json({ error: 'O campo "email" é obrigatório!' });
-        if (!cpf || !cpf.length <= 11) return res.status(400).json({ error: 'O campo "cpf" é obrigatório! E deve conter 11 digitos' });
+        if (!cpf || !cpf.length == 11) return res.status(400).json({ error: 'O campo "cpf" é obrigatório! E deve conter 11 digitos' });
         if (!cep || !cep.length == 8) return res.status(400).json({ error: 'O campo "cep" é obrigatório! E deve conter 8 digitos' });
 
+           let endereco = {};
+           if (cep) {
+               endereco = await preencherEnderecoPorCep(cep);
+               if (!endereco)
+                   return res.status(400).json({ error: true, message: 'CEP inválido.' });
+           }
 
-        const usuario = new UsuarioModel({ nome, telefone, email, cpf, cep });
+        const usuario = new UsuarioModel({
+            nome,
+            telefone,
+            email,
+            cpf,
+            cep: cep ? String(cep) : null,
+            logradouro: endereco.logradouro || null,
+            bairro: endereco.bairro || null,
+            cidade: endereco.localidade || null,
+            uf: endereco.uf || null,
+        });
         const data = await usuario.criar();
 
         res.status(201).json({ message: 'Registro criado com sucesso!', data });
