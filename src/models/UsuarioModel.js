@@ -76,4 +76,29 @@ export default class UsuarioModel {
             },
         });
     }
+
+    async deletar() {
+        return prisma.usuario.delete({ where: { id: this.id } });
+    }
+
+    static async buscarTodos(filtros = {}) {
+        const where = {};
+
+
+
+        if (filtros.nome) where.nome = { contains: filtros.nome, mode: 'insensitive' };
+        if (filtros.telefone) where.telefone = { contains: filtros.telefone, mode: 'insensitive' };
+        if (filtros.email) where.email = { contains: filtros.email, mode: 'insensitive' };
+        if (filtros.cpf) where.cpf = { contains: filtros.cpf, mode: 'insensitive' };
+        if (filtros.cep) where.cep = { contains: filtros.cep, mode: 'insensitive' };
+
+
+        return prisma.usuario.findMany({ where, orderBy: { id: 'asc' } });
+    }
+
+    static async buscarPorId(id) {
+        const data = await prisma.usuario.findUnique({ where: { id } });
+        if (!data) return null;
+        return new UsuarioModel(data);
+    }
 }
