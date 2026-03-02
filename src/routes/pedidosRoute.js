@@ -1,12 +1,12 @@
 import express from 'express';
-import * as controller from '../controllers/exemploController.js';
+import * as controller from '../controllers/pedidosController.js';
 
 const router = express.Router();
 
-router.post('/exemplos', controller.criar);
-router.get('/exemplos', controller.buscarTodos);
-router.get('/exemplos/:id', controller.buscarPorId);
-router.put('/exemplos/:id', controller.atualizar);
-router.delete('/exemplos/:id', controller.deletar);
+router.post('/pedidos', controller.criar);
+router.get('/pedidos', controller.buscarTodos);
+router.get('/pedidos/:id', controller.buscarPorId);
+router.put('/pedidos/:id', controller.atualizar);
+router.delete('/pedidos/:id', controller.deletar);
 
 export default router;

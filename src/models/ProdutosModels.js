@@ -1,33 +1,92 @@
 import prisma from '../utils/prismaClient.js';
 
-export default class ExemploModel {
-    constructor({ id = null, nome = null, estatus = true, preco = null } = {}) {
+export default class ProdutosModels {
+    constructor({ id = Number, nome = String, descricao = String, categoria = categoria, preco = Decimal(10, 2), disponivel = true, itens = String } = {}) {
         this.id = id;
         this.nome = nome;
-        this.estatus = estatus;
+        this.descricao = descricao;
+        this.categoria = categoria;
         this.preco = preco;
+        this.disponivel = disponivel;
+        this.itens = itens;
+
     }
 
     async criar() {
-        return prisma.exemplo.create({
+        if (this.preco <= 0 ) {
+            throw new Error(`Produto não pode ser criado com o preco igual ou menor que 0!`);
+        }
+
+        return await prisma.Produto.create({
             data: {
+              //  id: this.id,
                 nome: this.nome,
-                estatus: this.estatus,
+                descricao: this.descricao,
+                categoria: this.categoria,
                 preco: this.preco,
+                disponivel: this.disponivel,
+                itens: this.itens,
             },
         });
     }
 
+
+        async produtoAdicionadoAoPedido(produtoId, pedidoId) {
+            const produto = await prisma.Produto.findUnique({ where: { id: produtoId } });
+
+            if (!produto.disponivel) {
+                throw new Error("Não pode adicionar produto indisponivel ao pedido");
+            }
+
+            return await prisma.ItemPedido.create({
+                data: { produtoId, pedidoId }
+            });
+        }
+       // return produtos;
+
+
+
     async atualizar() {
-        return prisma.exemplo.update({
+       if (!this.id) throw new Error ("Produto id é obrigatório atualizar")
+         if (this.preco <= 0) {
+             throw new Error(`Produto não pode ser criado com o preco igual ou menor que 0!`);
+         }
+
+        return await prisma.Produto.update({
             where: { id: this.id },
-            data: { nome: this.nome, estatus: this.estatus, preco: this.preco },
-        });
+             data: {
+                 id: this.id,
+                 nome: this.nome,
+                 descricao: this.descricao,
+                 categoria: this.categoria,
+                 preco: this.preco,
+                 disponivel: this.disponivel,
+                 itens: this.itens,
+             },
+         });
+
+
     }
 
     async deletar() {
-        return prisma.exemplo.delete({ where: { id: this.id } });
+        if (!this.id) throw new Error("Produto id obrigatório deletar");
+
+    const pedidoAberto = await prisma.ItemPedido.findFirst({
+            where: {
+                produtoId: this.id,
+                pedido: { status: "Aberto"}
+            }
+        });
+
+        if (pedidoAberto) {
+            throw new Error("Não pode deletar o produto que está vinculado a pedido aberto");
+        }
+        return await prisma.Produto.delete({
+            where: { id: this.id }
+        });
+
     }
+
 
     static async buscarTodos(filtros = {}) {
         const where = {};
@@ -36,12 +95,12 @@ export default class ExemploModel {
         if (filtros.estatus !== undefined) where.estatus = filtros.estatus === 'true';
         if (filtros.preco !== undefined) where.preco = parseFloat(filtros.preco);
 
-        return prisma.exemplo.findMany({ where });
+        return prisma.Produto.findMany({ where });
     }
 
     static async buscarPorId(id) {
-        const data = await prisma.exemplo.findUnique({ where: { id } });
+        const data = await prisma.Produtos.findUnique({ where: { id } });
         if (!data) return null;
-        return new ExemploModel(data);
+        return new ProdutosModels(data);
     }
 }

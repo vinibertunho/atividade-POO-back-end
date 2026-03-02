@@ -1,47 +1,79 @@
 import prisma from '../utils/prismaClient.js';
 
-export default class ExemploModel {
-    constructor({ id = null, nome = null, estatus = true, preco = null } = {}) {
+export default class UsuarioModel {
+    constructor({
+        id = null,
+        nome,
+        telefone,
+        email,
+        cpf,
+        cep,
+        ativo = true,
+    } = {}) {
         this.id = id;
         this.nome = nome;
-        this.estatus = estatus;
-        this.preco = preco;
+        this.telefone = telefone;
+        this.email = email;
+        this.cpf = cpf;
+        this.cep = cep;
+        this.ativo = ativo;
+    }
+
+    async preencherEnderecoPorCep() {
+        if (!this.cep) return;
+
+        const cepLimpo = this.cep.replace(/\D/g, '');
+        if (cepLimpo.length !== 8) return;
+
+        try {
+            const resposta = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+            const dados = await resposta.json();
+
+            if (!dados.erro) {
+                this.logradouro = dados.logradouro;
+                this.bairro = dados.bairro;
+                this.localidade = dados.localidade;
+                this.uf = dados.uf;
+            }
+        } catch (error) {
+            console.error('Erro ao buscar CEP no Model:', error.message);
+        }
     }
 
     async criar() {
-        return prisma.exemplo.create({
+        await this.preencherEnderecoPorCep();
+
+        return prisma.usuario.create({
             data: {
                 nome: this.nome,
-                estatus: this.estatus,
-                preco: this.preco,
+                telefone: this.telefone,
+                email: this.email,
+                cpf: this.cpf,
+                cep: this.cep,
+                logradouro: this.logradouro,
+                bairro: this.bairro,
+                localidade: this.localidade,
+                uf: this.uf,
             },
         });
     }
 
     async atualizar() {
-        return prisma.exemplo.update({
+        await this.preencherEnderecoPorCep();
+
+        return prisma.usuario.update({
             where: { id: this.id },
-            data: { nome: this.nome, estatus: this.estatus, preco: this.preco },
+            data: {
+                nome: this.nome,
+                telefone: this.telefone,
+                email: this.email,
+                cpf: this.cpf,
+                cep: this.cep,
+                logradouro: this.logradouro,
+                bairro: this.bairro,
+                localidade: this.localidade,
+                uf: this.uf,
+            },
         });
-    }
-
-    async deletar() {
-        return prisma.exemplo.delete({ where: { id: this.id } });
-    }
-
-    static async buscarTodos(filtros = {}) {
-        const where = {};
-
-        if (filtros.nome) where.nome = { contains: filtros.nome, mode: 'insensitive' };
-        if (filtros.estatus !== undefined) where.estatus = filtros.estatus === 'true';
-        if (filtros.preco !== undefined) where.preco = parseFloat(filtros.preco);
-
-        return prisma.exemplo.findMany({ where });
-    }
-
-    static async buscarPorId(id) {
-        const data = await prisma.exemplo.findUnique({ where: { id } });
-        if (!data) return null;
-        return new ExemploModel(data);
     }
 }

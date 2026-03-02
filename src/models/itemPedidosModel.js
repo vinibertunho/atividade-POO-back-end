@@ -16,17 +16,43 @@ export default class itemPedidoModel {
     }
 
     async criar() {
-        return prisma.itemPedido.create({
+
+        //Regras de negócio
+        //1
+        if (this.quantidade <= 0) {
+            throw new Error ('A quantidade deve ser maior que 0.')
+        }
+
+        //2
+        const produto = await prisma.produto.findUnique({
+            where: { id: this.produtoId }
+        });
+
+        if (!produto) {
+            throw new Error('Não foi possivel encontrar o produto')
+        }
+
+            const registro = await prisma.itemPedido.criar({
             data: {
                 pedidoId: this.pedidoId,
                 produtoId: this.produtoId,
                 quantidade: this.quantidade,
                 precoUnitario: this.precoUnitario,
             },
-        });
+            });
+
+        this.id = registro.id;
+        this.precoUnitario = registro.precoUnitario;
+        return registro;
+
     }
 
     async atualizar() {
+        if (!this.id) throw new Error('ID não definido.');
+        if (this.quantidade <=0){
+            throw new Error('A quantidade deve ser maior que 0.')
+        }
+
         return prisma.itemPedido.update({
             where: { id: this.id },
             data: {
@@ -39,7 +65,10 @@ export default class itemPedidoModel {
     }
 
     async deletar() {
-        return prisma.itemPedido.delete({ where: { id: this.id } });
+        if (!this.id) throw new Error('ID não definido.');
+        return prisma.itemPedido.deletar({
+            where: { id: this.id },
+        });
     }
 
     static async buscarTodos(filtros = {}) {
@@ -57,9 +86,26 @@ export default class itemPedidoModel {
         return prisma.itemPedido.findMany({ where });
     }
 
-    static async buscarPorId(id) {
-        const data = await prisma.itemPedido.findUnique({ where: { id } });
-        if (!data) return null;
-        return new itemPedidoModel(data);
+    static async buscarPorId() {
+        if (!this.id) throw new Error('ID não definido');
+
+        const registro = await prisma.itemPedido.findUnique({
+            where: {id: this.id},
+        });
+
+        if (!registro) return null;
+         {
+
+             this.pedidoId = registro.pedidoId;
+             this.produtoId = registro.produtoId;
+             this.quantidade = registro.quantidade;
+            this.precoUnitario = registro.precoUnitario;
+            return this;
+        };
+
+        async buscarTodos() {
+            return prisma.itemPedido.findMany();
+        };
+
     }
 }

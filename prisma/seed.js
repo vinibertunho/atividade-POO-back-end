@@ -9,34 +9,19 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-    console.log('🌱 Limpando base de dados...');
-    // Deletar na ordem inversa para evitar erros de relacionamento
+    console.log('🌱 Limpando tabelas...');
     await prisma.itemPedido.deleteMany();
     await prisma.pedido.deleteMany();
     await prisma.produto.deleteMany();
-    await prisma.usuario.deleteMany();
+    await prisma.Usuario.deleteMany();
 
-    console.log('👤 Criando 3 clientes...');
-    const u1 = await prisma.usuario.create({
+    console.log('👤 Criando 3 Usuários...');
+    const u1 = await prisma.Usuario.create({
         data: {
             nome: 'Alice Silva',
             email: 'alice@email.com',
             telefone: '11911111111',
-            cpf: '11122233344',
-            cep: '13273649',
-            logradouro: null,
-            bairro: null,
-            localidade: null,
-            uf: null,
-        },
-    });
-
-    const u2 = await prisma.usuario.create({
-        data: {
-            nome: 'Bruno Souza',
-            email: 'bruno@email.com',
-            telefone: '11922222222',
-            cpf: '22233344455',
+            cpf: '111',
             cep: '01001000',
             logradouro: null,
             bairro: null,
@@ -44,14 +29,26 @@ async function main() {
             uf: null,
         },
     });
-
-    const u3 = await prisma.usuario.create({
+    const u2 = await prisma.Usuario.create({
+        data: {
+            nome: 'Bruno Souza',
+            email: 'bruno@email.com',
+            telefone: '11922222222',
+            cpf: '222',
+            cep: '20040000',
+            logradouro: 'Av. Rio Branco',
+            bairro: 'Centro',
+            localidade: 'RJ',
+            uf: 'RJ',
+        },
+    });
+    const u3 = await prisma.Usuario.create({
         data: {
             nome: 'Carla Dias',
             email: 'carla@email.com',
             telefone: '11933333333',
-            cpf: '33344455566',
-            cep: '20040000',
+            cpf: '333',
+            cep: '30140010',
             logradouro: null,
             bairro: null,
             localidade: null,
@@ -59,28 +56,29 @@ async function main() {
         },
     });
 
-    console.log('🍔 Criando 3 produtos...');
+    console.log('🍔 Criando 3 Produtos...');
     const p1 = await prisma.produto.create({
-        data: { nome: 'X-Burger', preco: 25.0, categoria: 'LANCHE', descricao: 'Pão e carne' },
+        data: { nome: 'X-Bacon', preco: 35.0, categoria: 'LANCHE', descricao: 'Bacon e cheddar' },
     });
     const p2 = await prisma.produto.create({
         data: { nome: 'Coca-Cola', preco: 8.0, categoria: 'BEBIDA', descricao: 'Lata 350ml' },
     });
     const p3 = await prisma.produto.create({
         data: {
-            nome: 'Combo Família',
-            preco: 85.0,
-            categoria: 'COMBO',
-            descricao: '3 Lanches e 1 Refri',
+            nome: 'Batata Frita',
+            preco: 15.0,
+            categoria: 'LANCHE',
+            descricao: 'Porção individual',
         },
     });
 
-    console.log('🛒 Criando pedidos relacionados...');
-    // Pedido da Alice (X-Burger + Coca)
+    console.log('🛒 Criando 3 Pedidos (1 para cada cliente)...');
+
+    // Pedido 1 (Alice): X-Bacon + Coca
     await prisma.pedido.create({
         data: {
             usuarioId: u1.id,
-            total: 33.0,
+            total: 43.0,
             status: 'CONCLUIDO',
             itens: {
                 create: [
@@ -91,19 +89,31 @@ async function main() {
         },
     });
 
-    // Pedido do Bruno (Combo Família)
+    // Pedido 2 (Bruno): 2 Cocas
     await prisma.pedido.create({
         data: {
             usuarioId: u2.id,
-            total: 85.0,
+            total: 16.0,
             status: 'PENDENTE',
+            itens: {
+                create: [{ produtoId: p2.id, quantidade: 2, precoUnit: p2.preco }],
+            },
+        },
+    });
+
+    // Pedido 3 (Carla): Batata Frita
+    await prisma.pedido.create({
+        data: {
+            usuarioId: u3.id,
+            total: 15.0,
+            status: 'PREPARANDO',
             itens: {
                 create: [{ produtoId: p3.id, quantidade: 1, precoUnit: p3.preco }],
             },
         },
     });
 
-    console.log('✅ Seed completo com relacionamentos!');
+    console.log('✅ Seed finalizado: 3 Clientes, 3 Produtos e 3 Pedidos criados!');
 }
 
 main()
@@ -113,4 +123,5 @@ main()
     })
     .finally(async () => {
         await prisma.$disconnect();
+        await pool.end();
     });
