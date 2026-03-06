@@ -4,7 +4,7 @@ export default class itemPedidoModel {
     constructor({
         id = null,
         pedidoId = null,
-        produtoId = null, // corrigido (antes estava true)
+        produtoId = null,
         quantidade = null,
         precoUnitario = null,
     } = {}) {
@@ -16,28 +16,30 @@ export default class itemPedidoModel {
     }
 
     async criar() {
-        //Regras de negócio
-        //1
-        if (this.quantidade <= 0) {
-            throw new Error('A quantidade deve ser maior que 0.');
+        // Regra de Negócio 1
+        if (this.quantidade <= 0 || this.quantidade > 99) {
+            throw new Error('A quantidade deve ser entre 1 e 99.');
         }
 
-        //2
         const produto = await prisma.produto.findUnique({
             where: { id: this.produtoId },
         });
 
+        // Regra de Negócio 3
         if (!produto) {
             throw new Error('Não foi possivel encontrar o produto');
         }
 
-        const registro = await prisma.itemPedido.criar({
+        if (!produto.disponivel) throw new Error('Produto indisponível no momento.');
+
+        const registro = await prisma.itemPedido.create({
             data: {
                 pedidoId: this.pedidoId,
                 produtoId: this.produtoId,
                 quantidade: this.quantidade,
-                precoUnitario: produto.preco
 
+                // Regra de Negócio 2
+                precoUnitario: produto.preco,
             },
         });
 
@@ -65,7 +67,20 @@ export default class itemPedidoModel {
 
     async deletar() {
         if (!this.id) throw new Error('ID não definido.');
-        return prisma.itemPedido.deletar({
+
+        const item = await prisma.itemPedido.findUnique({
+            where: { id: this.id },
+            include: { pedido: true },
+        });
+
+        if (!item) throw new Error('Item não encontrado.');
+
+        // Regra de Negócio 4
+        if (['PAGO', 'CANCELADO'].includes(item.pedido.status)) {
+            throw new Error('Não é possível remover item de pedido PAGO ou CANCELADO.');
+        }
+
+        return prisma.itemPedido.delete({
             where: { id: this.id },
         });
     }
@@ -74,31 +89,27 @@ export default class itemPedidoModel {
         const where = {};
 
         if (filtros.pedidoId !== undefined) where.pedidoId = parseInt(filtros.pedidoId);
-
         if (filtros.produtoId !== undefined) where.produtoId = parseInt(filtros.produtoId);
-
         if (filtros.quantidade !== undefined) where.quantidade = parseInt(filtros.quantidade);
-
         if (filtros.precoUnitario !== undefined)
             where.precoUnitario = parseFloat(filtros.precoUnitario);
 
         return prisma.itemPedido.findMany({ where });
     }
 
-    static async buscarPorId() {
-        if (!this.id) throw new Error('ID não definido');
+    static async buscarPorId(id) {
+        if (!id) throw new Error('ID não definido');
 
         const registro = await prisma.itemPedido.findUnique({
-            where: { id: this.id },
+            where: { id },
         });
 
         if (!registro) return null;
-        {
-            this.pedidoId = registro.pedidoId;
-            this.produtoId = registro.produtoId;
-            this.quantidade = registro.quantidade;
-            this.precoUnitario = registro.precoUnitario;
-            return this;
-        }
+
+        this.pedidoId = registro.pedidoId;
+        this.produtoId = registro.produtoId;
+        this.quantidade = registro.quantidade;
+        this.precoUnitario = registro.precoUnitario;
+        return this;
     }
 }
