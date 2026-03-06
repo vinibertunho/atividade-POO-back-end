@@ -1,4 +1,4 @@
-import itemPedidoModel from '../models/UsuarioModel.js';
+import itemPedidoModel from '../models/itemPedidoModel.js';
 
 export const criar = async (req, res) => {
     try {
@@ -6,18 +6,14 @@ export const criar = async (req, res) => {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
         }
 
-        const { pedidoId, produtoId, quantidade, precoUnitario } = req.body;
+        const { pedidoId, produtoId, quantidade } = req.body;
 
         if (!pedidoId) return res.status(400).json({ error: 'O campo "pedidoId" é obrigatório!' });
-
-        if (precoUnitario === undefined || precoUnitario === null)
-            return res.status(400).json({ error: 'O campo "precoUnitario" é obrigatório!' });
 
         const itemPedido = new itemPedidoModel({
             pedidoId,
             produtoId,
             quantidade,
-            precoUnitario: parseFloat(precoUnitario),
         });
         const data = await itemPedido.criar();
 
@@ -80,13 +76,13 @@ export const atualizar = async (req, res) => {
             return res.status(404).json({ error: 'Registro não encontrado para atualizar.' });
         }
 
-        if (req.body.nome !== undefined) itemPedido.nome = req.body.nome;
-        if (req.body.estatus !== undefined) itemPedido.estatus = req.body.estatus;
-        if (req.body.preco !== undefined) itemPedido.preco = parseFloat(req.body.preco);
+        if (req.body.pedidoId !== undefined) itemPedido.pedidoId = req.body.pedidoId;
+        if (req.body.produtoId !== undefined) itemPedido.produtoId = req.body.produtoId;
+        if (req.body.quantidade !== undefined) itemPedido.quantidade = req.body.quantidade;
 
         const data = await itemPedido.atualizar();
 
-        res.json({ message: `O registro "${data.nome}" foi atualizado com sucesso!`, data });
+        res.json({ message: `O registro "${data.id}" foi atualizado com sucesso!`, data });
     } catch (error) {
         console.error('Erro ao atualizar:', error);
         res.status(500).json({ error: 'Erro ao atualizar registro.' });
@@ -108,7 +104,7 @@ export const deletar = async (req, res) => {
         await itemPedido.deletar();
 
         res.json({
-            message: `O registro "${itemPedido.pedidoId}" foi deletado com sucesso!`,
+            message: `O registro "${itemPedido.id}" foi deletado com sucesso!`,
             deletado: itemPedido,
         });
     } catch (error) {

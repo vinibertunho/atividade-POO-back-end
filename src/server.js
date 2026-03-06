@@ -52,7 +52,7 @@ app.get('/api/cep/:cep', async (req, res) => {
 
 // Rotas
 app.use('/api', usuarioRoute);
-app.use('/api', pedidosRoute);
+app.use('/api/pedidos', pedidosRoute);
 app.use('/api', produtosRoute);
 app.use('/api', itemPedidoRoute);
 
