@@ -7,7 +7,21 @@ export const criar = async (req, res) => {
         if (!req.body) {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
         }
-      
+
+        const { nome, telefone, email, cpf, cep } = req.body;
+
+        if (!nome || nome.length < 3 || nome.length > 100) return res.status(400).json({ error: 'O campo "nome" é obrigatório!' });
+        if (!telefone) return res.status(400).json({ error: 'O campo "telefone" é obrigatório!' });
+        if (!email) return res.status(400).json({ error: 'O campo "email" é obrigatório!' });
+        if (!cpf || cpf.length !== 11) return res.status(400).json({ error: 'O campo "cpf" é obrigatório! E deve conter 11 digitos' });
+        if (!cep || cep.length !== 8) return res.status(400).json({ error: 'O campo "cep" é obrigatório! E deve conter 8 digitos' });
+
+           let endereco = {};
+           if (cep) {
+               endereco = await preencherEnderecoPorCep(cep);
+               if (!endereco)
+                   return res.status(400).json({ error: true, message: 'CEP inválido.' });
+           }
 
         const usuario = new UsuarioModel({
             nome,
@@ -17,26 +31,39 @@ export const criar = async (req, res) => {
             cep: cep ? String(cep) : null,
             logradouro: endereco.logradouro || null,
             bairro: endereco.bairro || null,
-            cidade: endereco.localidade || null,
+            localidade: endereco.localidade || null,
             uf: endereco.uf || null,
         });
         const data = await usuario.criar();
 
         res.status(201).json({ message: 'Registro criado com sucesso!', data });
     } catch (error) {
-        if (error.code === 'P2002') {
-            const target = error.meta?.target || '';
-            if (target.includes('email')) {
-                return res
-                    .status(400)
-                    .json({ error: 'Este e-mail já está em uso por outro usuário.' });
+        console.error('ERRO REAL DO PRISMA:', error.message);
+        
+        // Verifica se o erro é o P2002 (Código do Prisma para dados duplicados)
+        if (error.code === 'P2002' || error.message.includes('Unique constraint failed')) {
+            
+            // Mensagem padrão caso o banco de dados não diga qual foi a coluna
+            let campoDuplicado = 'CPF, E-mail ou Telefone'; 
+            
+            // Tenta descobrir o campo exato (funciona melhor em PostgreSQL/MySQL)
+            if (error.meta && error.meta.target) {
+                const detalhes = error.meta.target.toString().toLowerCase();
+                if (detalhes.includes('email')) campoDuplicado = 'E-mail';
+                else if (detalhes.includes('cpf')) campoDuplicado = 'CPF';
+                else if (detalhes.includes('telefone')) campoDuplicado = 'Telefone';
             }
-            if (target.includes('cpf')) {
-                return res.status(400).json({ error: 'Este CPF já está cadastrado no sistema.' });
-            }
+
+            return res.status(400).json({ 
+                error: `Atenção: Já existe um usuário cadastrado com este ${campoDuplicado}.` 
+            });
         }
-        console.error('Erro ao criar:', error);
-        res.status(500).json({ error: 'Erro interno ao salvar o registro.' });
+
+        // Se for qualquer outro erro no servidor
+        res.status(500).json({ 
+            error: 'Erro interno ao salvar o registro.', 
+            detalhe: error.message 
+        });
     }
 };
 
