@@ -13,6 +13,12 @@ enum Categoria {
     COMBO
 }
 
+enum StatusPedido {
+  ABERTO
+  PAGO
+  CANCELADO
+}
+
 model Usuario {
     id         Int      @id @default(autoincrement())
     nome       String
@@ -47,15 +53,16 @@ model Produto {
 }
 
 model Pedido {
-    id        Int          @id @default(autoincrement())
-    total     Decimal      @db.Decimal(10, 2)
-    status    String       @default("PENDENTE")
-    usuario   Usuario      @relation(fields: [usuarioId], references: [id])
-    usuarioId Int
-    itens     ItemPedido[]
-    createdAt DateTime     @default(now())
+  id        Int          @id @default(autoincrement())
+  clienteId Int
+  total     Decimal      @default(0) @db.Decimal(10,2)
+  status    StatusPedido @default(ABERTO)
+  criadoEm  DateTime     @default(now())
 
-    @@map("pedidos")
+    cliente   Usuario      @relation(fields: [clienteId], references: [id])
+  itens     ItemPedido[]
+
+  @@map("pedidos")
 }
 
 model ItemPedido {
