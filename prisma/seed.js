@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import pkg from '@prisma/client';
-const { PrismaClient, Categoria } = pkg; 
+const { PrismaClient, Categoria } = pkg;
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
@@ -77,9 +77,9 @@ async function main() {
     // Pedido 1 (Alice): X-Bacon + Coca
     await prisma.pedido.create({
         data: {
-            usuarioId: u1.id,
+            clienteId: u1.id,
             total: 43.0,
-            status: 'CONCLUIDO',
+            status: 'PAGO',
             itens: {
                 create: [
                     { produtoId: p1.id, quantidade: 1, precoUnit: p1.preco },
@@ -92,9 +92,9 @@ async function main() {
     // Pedido 2 (Bruno): 2 Cocas
     await prisma.pedido.create({
         data: {
-            usuarioId: u2.id,
+            clienteId: u2.id,
             total: 16.0,
-            status: 'PENDENTE',
+            status: 'ABERTO',
             itens: {
                 create: [{ produtoId: p2.id, quantidade: 2, precoUnit: p2.preco }],
             },
@@ -104,9 +104,9 @@ async function main() {
     // Pedido 3 (Carla): Batata Frita
     await prisma.pedido.create({
         data: {
-            usuarioId: u3.id,
+            clienteId: u3.id,
             total: 15.0,
-            status: 'PREPARANDO',
+            status: 'ABERTO',
             itens: {
                 create: [{ produtoId: p3.id, quantidade: 1, precoUnit: p3.preco }],
             },
