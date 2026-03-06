@@ -7,7 +7,35 @@ export const criar = async (req, res) => {
         if (!req.body) {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
         }
-      
+        const preencherEnderecoPorCep = async (cep) => {
+            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await response.json();
+            return data.erro ? null : data;
+        };
+
+        const { nome, telefone, email, cpf, cep } = req.body;
+
+        if (!nome || nome.length < 3 || nome.length > 100)
+            return res.status(400).json({
+                error: 'O campo "nome" é obrigatório! e deve ter no minimo 3 caracteres e no máximo 100 caracteres',
+            });
+        if (!telefone) return res.status(400).json({ error: 'O campo "telefone" é obrigatório!' });
+        if (!email) return res.status(400).json({ error: 'O campo "email" é obrigatório!' });
+        if (!cpf || cpf.length !== 11)
+            return res
+                .status(400)
+                .json({ error: 'O campo "cpf" é obrigatório! E deve conter 11 digitos' });
+        if (!cep || cep.length !== 8)
+            return res
+                .status(400)
+                .json({ error: 'O campo "cep" é obrigatório! E deve conter 8 digitos' });
+
+        let endereco = {};
+        if (cep) {
+            endereco = await preencherEnderecoPorCep(cep);
+            if (!endereco) return res.status(400).json({ error: true, message: 'CEP inválido.' });
+        }
+
 
         const usuario = new UsuarioModel({
             nome,
