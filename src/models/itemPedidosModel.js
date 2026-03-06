@@ -4,101 +4,84 @@ export default class itemPedidoModel {
     constructor({
         id = null,
         pedidoId = null,
-        produtoId = null, // corrigido (antes estava true)
+        produtoId = null,
         quantidade = null,
-        precoUnitario = null,
+        precoUnit = null,
     } = {}) {
         this.id = id;
         this.pedidoId = pedidoId;
         this.produtoId = produtoId;
         this.quantidade = quantidade;
-        this.precoUnitario = precoUnitario;
+        this.precoUnit = precoUnit;
     }
 
     async criar() {
-        //Regras de negócio
-        //1
         if (this.quantidade <= 0) {
             throw new Error('A quantidade deve ser maior que 0.');
         }
 
-        //2
         const produto = await prisma.produto.findUnique({
-            where: { id: this.produtoId },
+            where: { id: parseInt(this.produtoId) },
         });
 
         if (!produto) {
-            throw new Error('Não foi possivel encontrar o produto');
+            throw new Error('Não foi possível encontrar o produto');
         }
 
-        const registro = await prisma.itemPedido.criar({
+        const registro = await prisma.itemPedido.create({
             data: {
-                pedidoId: this.pedidoId,
-                produtoId: this.produtoId,
-                quantidade: this.quantidade,
-                precoUnitario: produto.preco
-
+                pedidoId: parseInt(this.pedidoId),
+                produtoId: parseInt(this.produtoId),
+                quantidade: parseInt(this.quantidade),
+                precoUnit: produto.preco
             },
         });
 
         this.id = registro.id;
-        this.precoUnitario = registro.precoUnitario;
+        this.precoUnit = registro.precoUnit;
         return registro;
     }
 
     async atualizar() {
         if (!this.id) throw new Error('ID não definido.');
-        if (this.quantidade <= 0) {
-            throw new Error('A quantidade deve ser maior que 0.');
-        }
 
-        return prisma.itemPedido.update({
-            where: { id: this.id },
+        return await prisma.itemPedido.update({
+            where: { id: parseInt(this.id) },
             data: {
-                pedidoId: this.pedidoId,
-                produtoId: this.produtoId,
-                quantidade: this.quantidade,
-                precoUnitario: this.precoUnitario,
+                quantidade: parseInt(this.quantidade),
+                pedidoId: parseInt(this.pedidoId),
+                produtoId: parseInt(this.produtoId)
             },
         });
     }
 
     async deletar() {
         if (!this.id) throw new Error('ID não definido.');
-        return prisma.itemPedido.deletar({
-            where: { id: this.id },
+
+        return await prisma.itemPedido.delete({
+            where: { id: parseInt(this.id) },
         });
     }
 
     static async buscarTodos(filtros = {}) {
         const where = {};
 
-        if (filtros.pedidoId !== undefined) where.pedidoId = parseInt(filtros.pedidoId);
+        if (filtros.pedidoId) where.pedidoId = parseInt(filtros.pedidoId);
+        if (filtros.produtoId) where.produtoId = parseInt(filtros.produtoId);
 
-        if (filtros.produtoId !== undefined) where.produtoId = parseInt(filtros.produtoId);
-
-        if (filtros.quantidade !== undefined) where.quantidade = parseInt(filtros.quantidade);
-
-        if (filtros.precoUnitario !== undefined)
-            where.precoUnitario = parseFloat(filtros.precoUnitario);
-
-        return prisma.itemPedido.findMany({ where });
+        return await prisma.itemPedido.findMany({ 
+            where,
+            include: { 
+                produto: true,
+                pedido: true 
+            } 
+        });
     }
 
-    static async buscarPorId() {
-        if (!this.id) throw new Error('ID não definido');
-
-        const registro = await prisma.itemPedido.findUnique({
-            where: { id: this.id },
+    static async buscarPorId(id) {
+        return await prisma.itemPedido.findUnique({
+            where: { id: parseInt(id) },
+            include: { produto: true }
         });
-
-        if (!registro) return null;
-        {
-            this.pedidoId = registro.pedidoId;
-            this.produtoId = registro.produtoId;
-            this.quantidade = registro.quantidade;
-            this.precoUnitario = registro.precoUnitario;
-            return this;
-        }
     }
 }
