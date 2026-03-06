@@ -7,7 +7,7 @@ export const criar = async (req, res) => {
         if (!req.body) {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
         }
-        
+      
 
         const usuario = new UsuarioModel({
             nome,
