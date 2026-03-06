@@ -127,8 +127,10 @@ export const deletar = async (req, res) => {
         if (!usuario) {
             return res.status(404).json({ error: 'Registro não encontrado para deletar.' });
         }
-        if (!usuario.pedidos.status == "ABERTO") {
-            return res.status(404).json({ error: 'Não é possível deletar usuário quando tem um pedido em aberto.' });
+        if (usuario.pedidos?.[0]?.status === 'ABERTO') {
+            return res
+                .status(404)
+                .json({ error: 'Não é possível deletar usuário quando tem um pedido em aberto.' });
         }
 
         await usuario.deletar();
