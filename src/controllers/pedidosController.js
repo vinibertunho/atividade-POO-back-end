@@ -1,140 +1,236 @@
-import PedidosModel from '../models/PedidosModels.js';
+import prisma from '../utils/prismaClient.js';
+import { PedidoModel } from '../models/PedidosModels.js';
 
-const STATUS_VALIDOS = ['ABERTO', 'PAGO', 'CANCELADO'];
-
-export const criar = async (req, res) => {
+export const criarPedido = async (req, res) => {
     try {
-        if (!req.body) {
-            return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
+        const { clienteId } = req.body;
+        const clienteIdNum = Number(clienteId);
+
+        if (!Number.isInteger(clienteIdNum) || clienteIdNum <= 0) {
+            return res.status(400).json({ erro: 'clienteId inválido' });
+        }
+
+        const cliente = await prisma.usuario.findUnique({
+            where: { id: clienteIdNum },
+        });
+
+        if (!cliente) {
+            return res.status(404).json({
+                erro: 'Cliente não encontrado',
+            });
+        }
+
+        // regra: cliente precisa estar ativo
+        if (cliente.ativo === false) {
+            return res.status(400).json({
+                erro: 'Não é possível criar pedido para cliente inativo',
+            });
+        }
+
+        const pedido = await PedidoModel.criar(clienteIdNum);
+
+        res.status(201).json(pedido);
+    } catch (error) {
+        res.status(500).json({ erro: error.message });
+    }
+};
+
+export const listarPedidos = async (req, res) => {
+    try {
+        const pedidos = await PedidoModel.listar();
+
+        res.json(pedidos);
+    } catch (error) {
+        res.status(500).json({ erro: error.message });
+    }
+};
+
+export const buscarPedido = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const pedidoId = Number(id);
+
+        if (!Number.isInteger(pedidoId) || pedidoId <= 0) {
+            return res.status(400).json({ erro: 'ID do pedido inválido' });
+        }
+
+        const pedido = await PedidoModel.buscarPorId(pedidoId);
+
+        if (!pedido) {
+            return res.status(404).json({ erro: 'Pedido não encontrado' });
+        }
+
+        res.json(pedido);
+    } catch (error) {
+        res.status(500).json({ erro: error.message });
+    }
+};
+
+export const adicionarItem = async (req, res) => {
+    try {
+        const { pedidoId, produtoId, quantidade, preco } = req.body;
+        const pedidoIdNum = Number(pedidoId);
+
+        if (!Number.isInteger(pedidoIdNum) || pedidoIdNum <= 0) {
+            return res.status(400).json({ erro: 'pedidoId inválido' });
+        }
+
+        const pedido = await PedidoModel.buscarPorId(pedidoIdNum);
+
+        if (!pedido) {
+            return res.status(404).json({ erro: 'Pedido não encontrado' });
+        }
+
+        // regra: não adicionar itens se pago ou cancelado
+        if (pedido.status === 'PAGO' || pedido.status === 'CANCELADO') {
+            return res.status(400).json({
+                erro: 'Não é possível adicionar itens a um pedido finalizado',
+            });
+        }
+
+        const item = await prisma.itemPedido.create({
+            data: {
+                pedidoId: pedidoIdNum,
+                produtoId,
+                quantidade,
+                preco,
+            },
+        });
+
+        // recalcular total automaticamente
+        const itens = await prisma.itemPedido.findMany({
+            where: { pedidoId: pedidoIdNum },
+        });
+
+        const total = itens.reduce((soma, item) => {
+            return soma + item.preco * item.quantidade;
+        }, 0);
+
+        await PedidoModel.atualizarTotal(pedidoIdNum, total);
+
+        res.json(item);
+    } catch (error) {
+        res.status(500).json({ erro: error.message });
+    }
+};
+
+export const cancelarPedido = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const pedidoId = Number(id);
+
+        if (!Number.isInteger(pedidoId) || pedidoId <= 0) {
+            return res.status(400).json({ erro: 'ID do pedido inválido' });
+        }
+
+        const pedido = await PedidoModel.buscarPorId(pedidoId);
+
+        if (!pedido) {
+            return res.status(404).json({ erro: 'Pedido não encontrado' });
+        }
+
+        // regra: só cancelar se estiver aberto
+        if (pedido.status !== 'ABERTO') {
+            return res.status(400).json({
+                erro: 'Só é possível cancelar pedidos ABERTOS',
+            });
+        }
+
+        const cancelado = await PedidoModel.atualizarStatus(pedidoId, 'CANCELADO');
+
+        res.json(cancelado);
+    } catch (error) {
+        res.status(500).json({ erro: error.message });
+    }
+};
+
+export const atualizarPedido = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const pedidoId = Number(id);
+
+        if (!Number.isInteger(pedidoId) || pedidoId <= 0) {
+            return res.status(400).json({ erro: 'ID do pedido inválido' });
+        }
+
+        const pedidoExistente = await PedidoModel.buscarPorId(pedidoId);
+
+        if (!pedidoExistente) {
+            return res.status(404).json({ erro: 'Pedido não encontrado' });
         }
 
         const { clienteId, total, status } = req.body;
+        const data = {};
 
-        if (!clienteId)
-            return res.status(400).json({ error: 'O campo "clienteId" é obrigatório!' });
-        if (total !== undefined)
-            return res.status(400).json({ error: 'O campo "total" é calculado automaticamente.' });
-        if (status !== undefined && status !== 'ABERTO') {
-            return res
-                .status(400)
-                .json({ error: 'Pedido deve iniciar obrigatoriamente com status ABERTO.' });
-        }
-        if (status && !STATUS_VALIDOS.includes(status)) {
-            return res
-                .status(400)
-                .json({ error: 'Status inválido. Use: ABERTO, PAGO ou CANCELADO.' });
-        }
+        if (clienteId !== undefined) {
+            const clienteIdNum = Number(clienteId);
 
-        const pedido = new PedidosModel({
-            clienteId,
-            status: 'ABERTO',
-        });
-        const data = await pedido.criar();
-
-        res.status(201).json({ message: 'Pedido criado com sucesso!', data });
-    } catch (error) {
-        console.error('Erro ao criar:', error);
-        res.status(500).json({ error: 'Erro interno ao salvar o pedido.' });
-    }
-};
-
-export const buscarTodos = async (req, res) => {
-    try {
-        const registros = await PedidosModel.buscarTodos(req.query);
-
-        if (!registros || registros.length === 0) {
-            return res.status(200).json({ message: 'Nenhum pedido encontrado.' });
-        }
-
-        res.json(registros);
-    } catch (error) {
-        console.error('Erro ao buscar:', error);
-        res.status(500).json({ error: 'Erro ao buscar pedidos.' });
-    }
-};
-
-export const buscarPorId = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const pedido = await PedidosModel.buscarPorId(id);
-
-        if (!pedido) {
-            return res.status(404).json({ error: 'Pedido não encontrado.' });
-        }
-
-        res.json({ data: pedido });
-    } catch (error) {
-        console.error('Erro ao buscar:', error);
-        res.status(500).json({ error: 'Erro ao buscar pedido.' });
-    }
-};
-
-export const atualizar = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        if (!req.body) {
-            return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
-        }
-
-        const pedido = await PedidosModel.buscarPorId(id);
-
-        if (!pedido) {
-            return res.status(404).json({ error: 'Pedido não encontrado para atualizar.' });
-        }
-
-        if (req.body.total !== undefined) {
-            return res
-                .status(400)
-                .json({ error: 'O campo "total" é calculado automaticamente com base nos itens.' });
-        }
-
-        if (req.body.clienteId !== undefined) pedido.clienteId = req.body.clienteId;
-        if (req.body.status !== undefined) {
-            if (!STATUS_VALIDOS.includes(req.body.status)) {
-                return res
-                    .status(400)
-                    .json({ error: 'Status inválido. Use: ABERTO, PAGO ou CANCELADO.' });
+            if (!Number.isInteger(clienteIdNum) || clienteIdNum <= 0) {
+                return res.status(400).json({ erro: 'clienteId inválido' });
             }
 
-            if (req.body.status === 'CANCELADO' && pedido.status !== 'ABERTO') {
-                return res
-                    .status(400)
-                    .json({ error: 'Só é possível cancelar pedido com status ABERTO.' });
+            const cliente = await prisma.usuario.findUnique({
+                where: { id: clienteIdNum },
+            });
+
+            if (!cliente) {
+                return res.status(404).json({ erro: 'Cliente não encontrado' });
             }
 
-            pedido.status = req.body.status;
+            if (cliente.ativo === false) {
+                return res
+                    .status(400)
+                    .json({ erro: 'Não é possível vincular pedido a cliente inativo' });
+            }
+
+            data.clienteId = clienteIdNum;
         }
 
-        const data = await pedido.atualizar();
+        if (total !== undefined) {
+            const totalNum = Number(total);
 
-        res.json({ message: 'Pedido atualizado com sucesso!', data });
+            if (Number.isNaN(totalNum) || totalNum < 0) {
+                return res.status(400).json({ erro: 'total inválido' });
+            }
+
+            data.total = totalNum;
+        }
+
+        if (status !== undefined) {
+            const statusValido = ['ABERTO', 'PAGO', 'CANCELADO'];
+
+            if (!statusValido.includes(status)) {
+                return res.status(400).json({ erro: 'status inválido' });
+            }
+
+            data.status = status;
+        }
+
+        if (Object.keys(data).length === 0) {
+            return res.status(400).json({ erro: 'Informe ao menos um campo para atualizar' });
+        }
+
+        const pedidoAtualizado = await PedidoModel.atualizar(pedidoId, data);
+
+        res.json(pedidoAtualizado);
     } catch (error) {
-        console.error('Erro ao atualizar:', error);
-        res.status(500).json({ error: 'Erro ao atualizar pedido.' });
+        res.status(500).json({ erro: error.message });
     }
 };
 
-export const deletar = async (req, res) => {
+export const deletarPedido = async (req, res) => {
     try {
         const { id } = req.params;
+        const pedidoId = Number(id);
 
-        const pedido = await PedidosModel.buscarPorId(id);
-
-        if (!pedido) {
-            return res.status(404).json({ error: 'Pedido não encontrado para deletar.' });
+        if (!Number.isInteger(pedidoId) || pedidoId <= 0) {
+            return res.status(400).json({ erro: 'ID do pedido inválido' });
         }
 
-        await pedido.deletar();
+        await PedidoModel.deletar(pedidoId);
 
-        res.json({
-            message: 'Pedido deletado com sucesso!',
-            deletado: pedido,
-        });
+        res.json({ mensagem: 'Pedido deletado' });
     } catch (error) {
-        console.error('Erro ao deletar:', error);
-        res.status(500).json({ error: 'Erro ao deletar pedido.' });
+        res.status(500).json({ erro: error.message });
     }
 };
-import prisma from '../utils/prismaClient.js';

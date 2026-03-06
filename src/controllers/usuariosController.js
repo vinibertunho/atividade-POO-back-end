@@ -1,32 +1,13 @@
 import UsuarioModel from '../models/UsuarioModel.js';
 
 
-const preencherEnderecoPorCep = async (cep) => {
-    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-    const data = await response.json();
-    return data.erro ? null : data;
-};
 
 export const criar = async (req, res) => {
     try {
         if (!req.body) {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
         }
-
-        const { nome, telefone, email, cpf, cep } = req.body;
-
-        if (!nome) return res.status(400).json({ error: 'O campo "nome" é obrigatório!' });
-        if (!telefone) return res.status(400).json({ error: 'O campo "telefone" é obrigatório!' });
-        if (!email) return res.status(400).json({ error: 'O campo "email" é obrigatório!' });
-        if (!cpf || !cpf.length == 11) return res.status(400).json({ error: 'O campo "cpf" é obrigatório! E deve conter 11 digitos' });
-        if (!cep || !cep.length == 8) return res.status(400).json({ error: 'O campo "cep" é obrigatório! E deve conter 8 digitos' });
-
-           let endereco = {};
-           if (cep) {
-               endereco = await preencherEnderecoPorCep(cep);
-               if (!endereco)
-                   return res.status(400).json({ error: true, message: 'CEP inválido.' });
-           }
+      
 
         const usuario = new UsuarioModel({
             nome,
@@ -43,6 +24,17 @@ export const criar = async (req, res) => {
 
         res.status(201).json({ message: 'Registro criado com sucesso!', data });
     } catch (error) {
+        if (error.code === 'P2002') {
+            const target = error.meta?.target || '';
+            if (target.includes('email')) {
+                return res
+                    .status(400)
+                    .json({ error: 'Este e-mail já está em uso por outro usuário.' });
+            }
+            if (target.includes('cpf')) {
+                return res.status(400).json({ error: 'Este CPF já está cadastrado no sistema.' });
+            }
+        }
         console.error('Erro ao criar:', error);
         res.status(500).json({ error: 'Erro interno ao salvar o registro.' });
     }
@@ -127,8 +119,10 @@ export const deletar = async (req, res) => {
         if (!usuario) {
             return res.status(404).json({ error: 'Registro não encontrado para deletar.' });
         }
-        if (!usuario.pedido.status == "ABERTO") {
-            return res.status(404).json({ error: 'Não é possível deletar usuário quando tem um pedido em aberto.' });
+        if (usuario.pedidos?.[0]?.status === "ABERTO") {
+            return res
+                .status(404)
+                .json({ error: 'Não é possível deletar usuário quando tem um pedido em aberto.' });
         }
 
         await usuario.deletar();
