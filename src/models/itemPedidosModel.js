@@ -6,51 +6,61 @@ export default class itemPedidoModel {
         pedidoId = null,
         produtoId = null,
         quantidade = null,
-        precoUnit = null,
+        precoUnitario = null,
     } = {}) {
         this.id = id;
         this.pedidoId = pedidoId;
         this.produtoId = produtoId;
         this.quantidade = quantidade;
-        this.precoUnit = precoUnit;
+        this.precoUnitario = precoUnitario;
     }
 
     async criar() {
-        if (this.quantidade <= 0) {
-            throw new Error('A quantidade deve ser maior que 0.');
+        // Regra de Negócio 1
+        if (this.quantidade <= 0 || this.quantidade > 99) {
+            throw new Error('A quantidade deve ser entre 1 e 99.');
         }
 
         const produto = await prisma.produto.findUnique({
-            where: { id: parseInt(this.produtoId) },
+            where: { id: this.produtoId },
         });
 
+        // Regra de Negócio 3
         if (!produto) {
-            throw new Error('Não foi possível encontrar o produto');
+            throw new Error('Não foi possivel encontrar o produto');
         }
+
+        if (!produto.disponivel) throw new Error('Produto indisponível no momento.');
 
         const registro = await prisma.itemPedido.create({
             data: {
-                pedidoId: parseInt(this.pedidoId),
-                produtoId: parseInt(this.produtoId),
-                quantidade: parseInt(this.quantidade),
-                precoUnit: produto.preco
+                pedidoId: this.pedidoId,
+                produtoId: this.produtoId,
+                quantidade: this.quantidade,
+
+                // Regra de Negócio 2
+                precoUnitario: produto.preco,
             },
         });
 
         this.id = registro.id;
-        this.precoUnit = registro.precoUnit;
+        this.precoUnitario = registro.precoUnitario;
         return registro;
     }
 
     async atualizar() {
         if (!this.id) throw new Error('ID não definido.');
+        if (this.quantidade <= 0) {
+            throw new Error('A quantidade deve ser maior que 0.');
+        }
 
-        return await prisma.itemPedido.update({
-            where: { id: parseInt(this.id) },
+        return prisma.itemPedido.update({
+            where: { id: this.id },
             data: {
-                quantidade: parseInt(this.quantidade),
-                pedidoId: parseInt(this.pedidoId),
-                produtoId: parseInt(this.produtoId)
+                pedidoId: this.pedidoId,
+                produtoId: this.produtoId,
+                quantidade: this.quantidade,
+                precoUnitario: this.precoUnitario,
             },
         });
     }
@@ -58,30 +68,48 @@ export default class itemPedidoModel {
     async deletar() {
         if (!this.id) throw new Error('ID não definido.');
 
-        return await prisma.itemPedido.delete({
-            where: { id: parseInt(this.id) },
+        const item = await prisma.itemPedido.findUnique({
+            where: { id: this.id },
+            include: { pedido: true },
+        });
+
+        if (!item) throw new Error('Item não encontrado.');
+
+        // Regra de Negócio 4
+        if (['PAGO', 'CANCELADO'].includes(item.pedido.status)) {
+            throw new Error('Não é possível remover item de pedido PAGO ou CANCELADO.');
+        }
+
+        return prisma.itemPedido.delete({
+            where: { id: this.id },
         });
     }
 
     static async buscarTodos(filtros = {}) {
         const where = {};
 
-        if (filtros.pedidoId) where.pedidoId = parseInt(filtros.pedidoId);
-        if (filtros.produtoId) where.produtoId = parseInt(filtros.produtoId);
+        if (filtros.pedidoId !== undefined) where.pedidoId = parseInt(filtros.pedidoId);
+        if (filtros.produtoId !== undefined) where.produtoId = parseInt(filtros.produtoId);
+        if (filtros.quantidade !== undefined) where.quantidade = parseInt(filtros.quantidade);
+        if (filtros.precoUnitario !== undefined)
+            where.precoUnitario = parseFloat(filtros.precoUnitario);
 
-        return await prisma.itemPedido.findMany({ 
-            where,
-            include: { 
-                produto: true,
-                pedido: true 
-            } 
-        });
+        return prisma.itemPedido.findMany({ where });
     }
 
     static async buscarPorId(id) {
-        return await prisma.itemPedido.findUnique({
-            where: { id: parseInt(id) },
-            include: { produto: true }
+        if (!id) throw new Error('ID não definido');
+
+        const registro = await prisma.itemPedido.findUnique({
+            where: { id },
         });
+
+        if (!registro) return null;
+
+        this.pedidoId = registro.pedidoId;
+        this.produtoId = registro.produtoId;
+        this.quantidade = registro.quantidade;
+        this.precoUnitario = registro.precoUnitario;
+        return this;
     }
 }

@@ -1,11 +1,6 @@
 import UsuarioModel from '../models/UsuarioModel.js';
 
 
-const preencherEnderecoPorCep = async (cep) => {
-    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-    const data = await response.json();
-    return data.erro ? null : data;
-};
 
 export const criar = async (req, res) => {
     try {
@@ -152,7 +147,9 @@ export const deletar = async (req, res) => {
             return res.status(404).json({ error: 'Registro não encontrado para deletar.' });
         }
         if (usuario.pedidos?.[0]?.status === "ABERTO") {
-            return res.status(404).json({ error: 'Não é possível deletar usuário quando tem um pedido em aberto.' });
+            return res
+                .status(404)
+                .json({ error: 'Não é possível deletar usuário quando tem um pedido em aberto.' });
         }
 
         await usuario.deletar();
