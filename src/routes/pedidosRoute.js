@@ -1,12 +1,21 @@
-import express from 'express';
-import * as controller from '../controllers/pedidosController.js';
+import express from "express"
 
-const router = express.Router();
+import {criarPedido,listarPedidos,buscarPedido,adicionarItem,cancelarPedido,atualizarPedido,deletarPedido} from "../controllers/pedidosController.js"
 
-router.post('/pedidos', controller.criar);
-router.get('/pedidos', controller.buscarTodos);
-router.get('/pedidos/:id', controller.buscarPorId);
-router.put('/pedidos/:id', controller.atualizar);
-router.delete('/pedidos/:id', controller.deletar);
+const router = express.Router()
 
-export default router;
+router.post("/", criarPedido)
+
+router.get("/", listarPedidos)
+
+router.get("/:id", buscarPedido)
+
+router.post("/item", adicionarItem)
+
+router.put("/:id/cancelar", cancelarPedido)
+
+router.put("/:id", atualizarPedido)
+
+router.delete("/:id", deletarPedido)
+
+export default router
