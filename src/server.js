@@ -52,10 +52,10 @@ app.get("/api/cep/:cep", async (req, res) => {
 });
 
 // Rotas
-app.use("/api", autenticarApiKey, usuarioRoute);
-app.use("/api", pedidosRoute);
-app.use("/api", produtosRoute);
-app.use("/api", itemPedidoRoute);
+app.use('/api/usuarios', autenticarApiKey, usuarioRoute);
+app.use('/api/pedidos', pedidosRoute);
+app.use('/api/produtos', produtosRoute);
+app.use('/api/itemPedidos', itemPedidoRoute);
 
 app.use((req, res) => {
   res.status(404).json({ error: "Rota não encontrada" });
