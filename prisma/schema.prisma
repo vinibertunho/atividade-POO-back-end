@@ -68,7 +68,7 @@ model Pedido {
 model ItemPedido {
     id         Int     @id @default(autoincrement())
     quantidade Int
-    precoUnit  Decimal @db.Decimal(10, 2)
+    precoUnitario  Decimal @db.Decimal(10, 2)
     pedido     Pedido  @relation(fields: [pedidoId], references: [id])
     pedidoId   Int
     produto    Produto @relation(fields: [produtoId], references: [id])
