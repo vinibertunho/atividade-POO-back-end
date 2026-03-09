@@ -69,36 +69,36 @@ export default class ProdutosModels {
         if (!this.id) throw new Error("Produto id é obrigatório atualizar");
 
         //  Preço maior que 0
-         if (this.preco <= 0) {
-             throw new Error(`Produto não pode ser criado com o preço igual ou menor que 0!`);
-         }
+        if (this.preco <= 0) {
+            throw new Error(`Produto não pode ser criado com o preço igual ou menor que 0!`);
+        }
 
         return await prisma.Produto.update({
             where: { id: this.id },
-             data: {
-                 nome: this.nome,
-                 descricao: this.descricao,
-                 categoria: this.categoria,
-                 preco: this.preco,
-                 disponivel: this.disponivel,
-                 itens: this.itens,
-             },
-         });
-  constructor({
-    id = null,
-    nome = "",
-    descricao = "",
-    categoria = "",
-    preco = 0,
-    disponivel = true,
-  } = {}) {
-    this.id = id;
-    this.nome = nome;
-    this.descricao = descricao;
-    this.categoria = categoria;
-    this.preco = preco;
-    this.disponivel = disponivel;
-  }
+            data: {
+                nome: this.nome,
+                descricao: this.descricao,
+                categoria: this.categoria,
+                preco: this.preco,
+                disponivel: this.disponivel,
+                itens: this.itens,
+            },
+        });
+        constructor({
+            id = null,
+            nome = "",
+            descricao = "",
+            categoria = "",
+            preco = 0,
+            disponivel = true,
+        } = {});
+        this.id = id;
+        this.nome = nome;
+        this.descricao = descricao;
+        this.categoria = categoria;
+        this.preco = preco;
+        this.disponivel = disponivel;
+    }
 
   async criar() {
     if (this.preco <= 0) {
