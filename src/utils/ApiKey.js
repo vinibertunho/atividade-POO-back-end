@@ -9,4 +9,4 @@ const autenticarApiKey = (req, res, next) => {
     next();
 };
 
-export default autenticar;
+export default autenticarApiKey;
