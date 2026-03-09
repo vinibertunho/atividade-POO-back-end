@@ -30,44 +30,76 @@ export default class UsuarioModel {
   }
 
   validar() {
-    if (!this.nome || this.nome.length < 3 || this.nome.length > 100) {
-      throw new Error("O nome deve ter entre 3 e 100 caracteres.");
-    }
-    if (!this.telefone) throw new Error('O campo "telefone" é obrigatório.');
-    if (!this.email) throw new Error('O campo "email" é obrigatório.');
+  if (!this.nome || this.nome.length < 3 || this.nome.length > 100) {
+    throw new Error("O nome é obrigatório deve ter entre 3 e 100 caracteres.");
+  }
+  if (!this.telefone || this.telefone.length !== 11) throw new Error('O campo "telefone" é obrigatório e deve conter 11 digitos');
+  if (!this.email || !this.email.includes('@')) {
+    throw new Error('O campo "email" é obrigatório e deve ter um "@" ');
+  }
 
-    const cpfLimpo = this.cpf ? String(this.cpf).replace(/\D/g, "") : "";
-    if (cpfLimpo.length !== 11) {
-      throw new Error("O CPF deve conter exatamente 11 dígitos.");
-    }
-
-    const cepLimpo = this.cep ? String(this.cep).replace(/\D/g, "") : "";
-    if (cepLimpo.length !== 8) {
-      throw new Error("O CEP deve conter exatamente 8 dígitos.");
+  // Limpeza de CPF básica (apenas números)
+  let cpfLimpo = "";
+  if (this.cpf) {
+    let cpfString = String(this.cpf);
+    for (let i = 0; i < cpfString.length; i++) {
+      let caractere = cpfString[i];
+      if (caractere >= "0" && caractere <= "9") {
+        cpfLimpo += caractere;
+      }
     }
   }
 
-  async preencherEnderecoPorCep() {
-    if (!this.cep) return;
-    const cepLimpo = String(this.cep).replace(/\D/g, "");
+  if (cpfLimpo.length !== 11 || !this.cpf) {
+    throw new Error("O CPF é obrigatório e deve conter exatamente 11 dígitos.");
+  }
 
-    try {
-      const resposta = await fetch(
-        `https://viacep.com.br/ws/${cepLimpo}/json/`,
-      );
-      const dados = await resposta.json();
-
-      if (dados.erro) throw new Error("CEP informado não foi encontrado.");
-
-      this.logradouro = dados.logradouro || null;
-      this.bairro = dados.bairro || null;
-      this.localidade = dados.localidade || null;
-      this.uf = dados.uf || null;
-    } catch (error) {
-      throw new Error("Erro ao buscar endereço: " + error.message);
+  // Limpeza de CEP básica (apenas números)
+  let cepLimpo = "";
+  if (this.cep) {
+    let cepString = String(this.cep);
+    for (let i = 0; i < cepString.length; i++) {
+      let caractere = cepString[i];
+      if (caractere >= "0" && caractere <= "9") {
+        cepLimpo += caractere;
+      }
     }
   }
 
+  if (cepLimpo.length !== 8) {
+    throw new Error("O CEP deve conter exatamente 8 dígitos.");
+  }
+}
+
+async preencherEnderecoPorCep() {
+  if (!this.cep) return;
+
+  // Limpeza de CEP básica para a URL
+  let cepLimpo = "";
+  let cepString = String(this.cep);
+  for (let i = 0; i < cepString.length; i++) {
+    let caractere = cepString[i];
+    if (caractere >= "0" && caractere <= "9") {
+      cepLimpo += caractere;
+    }
+  }
+
+  try {
+    const resposta = await fetch(
+      `https://viacep.com.br/ws/${cepLimpo}/json/`,
+    );
+    const dados = await resposta.json();
+
+    if (dados.erro) throw new Error("CEP informado não foi encontrado.");
+
+    this.logradouro = dados.logradouro || null;
+    this.bairro = dados.bairro || null;
+    this.localidade = dados.localidade || null;
+    this.uf = dados.uf || null;
+  } catch (error) {
+    throw new Error("Erro ao buscar endereço: " + error.message);
+  }
+}
   async buscarCoordenadas() {
     if (!this.localidade) return null;
 
