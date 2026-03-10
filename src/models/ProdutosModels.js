@@ -102,10 +102,14 @@ async deletar() {
         });
     }
 
-    static async buscarPorId(id) {
-        const data = await prisma.produto.findUnique({
-            where: { id: parseInt(id) },
-        });
-        return data ? new ProdutosModels(data) : null;
+    static async buscarPorId(ID) {
+      try {
+    const produto = await ProdutosModels.buscarPorId(req.params.id);
+    res.json(produto);
+} catch (Error) {
+    res.status(404).json({ success: false, message: Error.message });
+}
+
     }
+    
 } 

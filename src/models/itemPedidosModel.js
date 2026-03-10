@@ -1,6 +1,6 @@
 import prisma from '../utils/prismaClient.js';
 
-export default class itemPedidoModel {
+export default class itemPedidosModel {
     constructor({
         id = null,
         pedidoId = null,
@@ -45,12 +45,23 @@ export default class itemPedidoModel {
 
         this.id = registro.id;
         this.precoUnitario = registro.precoUnitario;
-        return registro;
+
+        return {
+            id: registro.id,
+            pedidoId: registro.pedidoId,
+            produtoId: registro.produtoId,
+            quantidade: registro.quantidade,
+            precoUnitario: registro.precoUnitario,
+        }
+    } catch (error) {
+        console.error('Erro no model criar itemPedido:', error.message);
+        throw new Error(error.message);
+        
     }
 
     async atualizar() {
         if (!this.id) throw new Error('ID não definido.');
-        if (this.quantidade <= 0) {
+        if (this.quantidade ||this.quantidade <= 0) {
             throw new Error('A quantidade deve ser maior que 0.');
         }
 
@@ -61,7 +72,7 @@ export default class itemPedidoModel {
                 produtoId: this.produtoId,
                 quantidade: this.quantidade,
                 precoUnitario: this.precoUnitario,
-            },
+            }
         });
     }
 
@@ -104,12 +115,17 @@ export default class itemPedidoModel {
             where: { id },
         });
 
-        if (!registro) return null;
+        if (!registro) {
+            throw new Error(`Não foi possível encontrar o itemPedido com o Id ${id}`)
+        }
 
-        this.pedidoId = registro.pedidoId;
-        this.produtoId = registro.produtoId;
-        this.quantidade = registro.quantidade;
-        this.precoUnitario = registro.precoUnitario;
-        return this;
+        return new itemPedidosModel ({
+
+            id: registro.id,
+            pedidoId: registro.pedidoId,
+            produtoId: registro.produtoId,
+            quantidade: registro.quantidade,
+            precoUnitario: registro.precoUnitario,
+        });
     }
 }
