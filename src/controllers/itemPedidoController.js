@@ -54,7 +54,7 @@ export const criar = async (req, res) => {
             pedidoId: pedidoIdNumero,
             produtoId: produtoIdNumero,
             quantidade: quantidadeNumero,
-            precoUnitario: produto.preco,
+             precoUnitario: produto.preco,
         });
 
         const registro = await itemPedido.criar();
