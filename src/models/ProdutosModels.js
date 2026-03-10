@@ -36,6 +36,7 @@ export default class ProdutosModels {
 
     async criar() {
         this.validar();
+
         return await prisma.produto.create({
             data: {
                 nome: this.nome,
@@ -45,6 +46,7 @@ export default class ProdutosModels {
                 disponivel: this.disponivel
             },
         });
+        
     }
 
     async atualizar() {
@@ -62,22 +64,29 @@ export default class ProdutosModels {
         });
     }
 
-    async deletar() {
-        if (!this.id) throw new Error("ID do produto é obrigatório para deletar.");
-        
-        // Verifica se há itens vinculados a esse produto
-        const produtoVinculado = await prisma.itemPedido.findFirst({
-            where: { produtoId: parseInt(this.id) }
-        });
+async deletar() {
+    if (!this.id) throw new Error("ID do produto é obrigatório para deletar.");
 
-        if (produtoVinculado) {
-            throw new Error("Não é possível deletar um produto que já foi vendido em algum pedido.");
-        }
+    const produtoEmPedidoAberto = await prisma.itemPedido.findFirst({
+        where: {
+            produtoId: parseInt(this.id),
+            pedido: {
+                status: "ABERTO"
+            }
+        },
+        include: { pedido: true } 
+    });
 
-        return await prisma.produto.delete({
-            where: { id: parseInt(this.id) },
-        });
+    if (produtoEmPedidoAberto) {
+        throw new Error(
+            `Não é possível deletar o produto, ele está vinculado ao pedido #${produtoEmPedidoAberto.pedidoId} que ainda está ABERTO.`
+        );
     }
+
+    return await prisma.produto.delete({
+        where: { id: parseInt(this.id) },
+    });
+}
 
     static async buscarTodos(filtros = {}) {
         const { nome, categoria, disponivel } = filtros;
