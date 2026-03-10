@@ -85,8 +85,8 @@ async function main() {
             status: 'PAGO',
             itens: {
                 create: [
-                    { produtoId: p1.id, quantidade: 1, precoUnit: p1.preco },
-                    { produtoId: p2.id, quantidade: 1, precoUnit: p2.preco },
+                    { produtoId: p1.id, quantidade: 1, precoUnitario: p1.preco },
+                    { produtoId: p2.id, quantidade: 1, precoUnitario: p2.preco },
                 ],
             },
         },
@@ -99,7 +99,7 @@ async function main() {
             total: 16.0,
             status: 'ABERTO',
             itens: {
-                create: [{ produtoId: p2.id, quantidade: 2, precoUnit: p2.preco }],
+                create: [{ produtoId: p2.id, quantidade: 2, precoUnitario: p2.preco }],
             },
         },
     });
@@ -111,7 +111,7 @@ async function main() {
             total: 15.0,
             status: 'ABERTO',
             itens: {
-                create: [{ produtoId: p3.id, quantidade: 1, precoUnit: p3.preco }],
+                create: [{ produtoId: p3.id, quantidade: 1, precoUnitario: p3.preco }],
             },
         },
     });

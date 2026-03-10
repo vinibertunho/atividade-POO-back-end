@@ -1,6 +1,6 @@
 import prisma from '../utils/prismaClient.js';
 
-export default class itemPedidosModel {
+export default class itemPedidoModel {
     constructor({
         id = null,
         pedidoId = null,
@@ -46,34 +46,22 @@ export default class itemPedidosModel {
         this.id = registro.id;
         this.precoUnitario = registro.precoUnitario;
 
-        return {
-            id: registro.id,
-            pedidoId: registro.pedidoId,
-            produtoId: registro.produtoId,
-            quantidade: registro.quantidade,
-            precoUnitario: registro.precoUnitario,
-        }
-    } catch (error) {
-        console.error('Erro no model criar itemPedido:', error.message);
-        throw new Error(error.message);
-        
+        await itemPedidoModel.recalcularTotalDoPedido(this.pedidoId);
+
+        return registro;
     }
 
-    async atualizar() {
+    async atualizar(dados) {
         if (!this.id) throw new Error('ID não definido.');
-        if (this.quantidade ||this.quantidade <= 0) {
-            throw new Error('A quantidade deve ser maior que 0.');
-        }
 
-        return prisma.itemPedido.update({
+        const registro = await prisma.itemPedido.update({
             where: { id: this.id },
-            data: {
-                pedidoId: this.pedidoId,
-                produtoId: this.produtoId,
-                quantidade: this.quantidade,
-                precoUnitario: this.precoUnitario,
-            }
+            data: dados,
         });
+
+        await itemPedidoModel.recalcularTotalDoPedido(this.pedidoId);
+
+        return registro;
     }
 
     async deletar() {
@@ -91,21 +79,26 @@ export default class itemPedidosModel {
             throw new Error('Não é possível remover item de pedido PAGO ou CANCELADO.');
         }
 
-        return prisma.itemPedido.delete({
+        await prisma.itemPedido.delete({
             where: { id: this.id },
         });
+
+        await itemPedidoModel.recalcularTotalDoPedido(item.pedidoId);
+
+        return true;
     }
 
     static async buscarTodos(filtros = {}) {
         const where = {};
 
-        if (filtros.pedidoId !== undefined) where.pedidoId = parseInt(filtros.pedidoId);
-        if (filtros.produtoId !== undefined) where.produtoId = parseInt(filtros.produtoId);
-        if (filtros.quantidade !== undefined) where.quantidade = parseInt(filtros.quantidade);
-        if (filtros.precoUnitario !== undefined)
-            where.precoUnitario = parseFloat(filtros.precoUnitario);
+        if (filtros.pedidoId !== undefined) where.pedidoId = Number(filtros.pedidoId);
+        if (filtros.produtoId !== undefined) where.produtoId = Number(filtros.produtoId);
+        if (filtros.quantidade !== undefined) where.quantidade = Number(filtros.quantidade);
 
-        return prisma.itemPedido.findMany({ where });
+        return prisma.itemPedido.findMany({
+            where,
+            orderBy: { id: 'asc' },
+        });
     }
 
     static async buscarPorId(id) {
@@ -115,17 +108,32 @@ export default class itemPedidosModel {
             where: { id },
         });
 
-        if (!registro) {
-            throw new Error(`Não foi possível encontrar o itemPedido com o Id ${id}`)
-        }
+        if (!registro) return null;
 
-        return new itemPedidosModel ({
+        return new itemPedidoModel(registro);
+    }
 
-            id: registro.id,
-            pedidoId: registro.pedidoId,
-            produtoId: registro.produtoId,
-            quantidade: registro.quantidade,
-            precoUnitario: registro.precoUnitario,
+    static async buscarPedidoPorId(id) {
+        return prisma.pedido.findUnique({ where: { id } });
+    }
+
+    static async buscarProdutoPorId(id) {
+        return prisma.produto.findUnique({ where: { id } });
+    }
+
+    static async recalcularTotalDoPedido(pedidoId) {
+        const itens = await prisma.itemPedido.findMany({
+            where: { pedidoId },
+            select: { quantidade: true, precoUnitario: true },
+        });
+
+        const total = itens.reduce((acumulador, item) => {
+            return acumulador + Number(item.precoUnitario) * item.quantidade;
+        }, 0);
+
+        return prisma.pedido.update({
+            where: { id: pedidoId },
+            data: { total },
         });
     }
 }
