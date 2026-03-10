@@ -1,4 +1,6 @@
+import itemPedidosModel from '../models/itemPedidosModel.js';
 import itemPedidoModel from '../models/itemPedidosModel.js';
+
 
 export const criar = async (req, res) => {
     try {
@@ -9,8 +11,10 @@ export const criar = async (req, res) => {
         const { pedidoId, produtoId, quantidade } = req.body;
 
         if (!pedidoId) return res.status(400).json({ error: 'O campo "pedidoId" é obrigatório!' });
+        if (!produtoId) return res.status(400).json({ error: 'O campo "pedidoId" é obrigatório!' });
+        if (!quantidade) return res.status(400).json({ error: 'O campo "pedidoId" é obrigatório!' });
 
-        const itemPedido = new itemPedidoModel({
+        const itemPedido = new itemPedidosModel({
             pedidoId,
             produtoId,
             quantidade,
