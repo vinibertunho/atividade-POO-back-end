@@ -1,18 +1,21 @@
 import 'dotenv/config';
 import pkg from '@prisma/client';
-const { PrismaClient, Categoria } = pkg;
-import { PrismaPg } from '@prisma/adapter-pg';
+const { PrismaClient } = pkg;
+
+const prisma = new PrismaClient ();
+export default prisma;
+/*import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient({ adapter }); */
 
 async function main() {
     console.log('🌱 Limpando tabelas...');
-    await prisma.itemPedido.deleteMany();
-    await prisma.pedido.deleteMany();
-    await prisma.produto.deleteMany();
+    await prisma.ItemPedido.deleteMany();
+    await prisma.Pedido.deleteMany();
+    await prisma.Produto.deleteMany();
     await prisma.Usuario.deleteMany();
 
     console.log('👤 Criando 3 Usuários...');
@@ -57,13 +60,13 @@ async function main() {
     });
 
     console.log('🍔 Criando 3 Produtos...');
-    const p1 = await prisma.produto.create({
+    const p1 = await prisma.Produto.create({
         data: { nome: 'X-Bacon', preco: 35.0, categoria: 'LANCHE', descricao: 'Bacon e cheddar' },
     });
-    const p2 = await prisma.produto.create({
+    const p2 = await prisma.Produto.create({
         data: { nome: 'Coca-Cola', preco: 8.0, categoria: 'BEBIDA', descricao: 'Lata 350ml' },
     });
-    const p3 = await prisma.produto.create({
+    const p3 = await prisma.Produto.create({
         data: {
             nome: 'Batata Frita',
             preco: 15.0,
@@ -75,7 +78,7 @@ async function main() {
     console.log('🛒 Criando 3 Pedidos (1 para cada cliente)...');
 
     // Pedido 1 (Alice): X-Bacon + Coca
-    await prisma.pedido.create({
+    await prisma.Pedido.create({
         data: {
             clienteId: u1.id,
             total: 43.0,
@@ -90,7 +93,7 @@ async function main() {
     });
 
     // Pedido 2 (Bruno): 2 Cocas
-    await prisma.pedido.create({
+    await prisma.Pedido.create({
         data: {
             clienteId: u2.id,
             total: 16.0,
@@ -102,7 +105,7 @@ async function main() {
     });
 
     // Pedido 3 (Carla): Batata Frita
-    await prisma.pedido.create({
+    await prisma.Pedido.create({
         data: {
             clienteId: u3.id,
             total: 15.0,
@@ -123,5 +126,5 @@ main()
     })
     .finally(async () => {
         await prisma.$disconnect();
-        await pool.end();
+        // await pool.end();
     });

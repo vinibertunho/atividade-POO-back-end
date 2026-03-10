@@ -1,162 +1,68 @@
-import UsuarioModel from '../models/UsuarioModel.js';
+import UsuarioModel from "../models/UsuarioModel.js";
 
-
+const tratarErro = (res, error) => {
+  if (error.code === "P2002") {
+    return res
+      .status(400)
+      .json({ error: "Dados duplicados (CPF, E-mail ou Telefone)." });
+  }
+  return res.status(400).json({ error: error.message });
+};
 
 export const criar = async (req, res) => {
-    try {
-        if (!req.body) {
-            return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
-        }
-
-        const { nome, telefone, email, cpf, cep } = req.body;
-
-        if (!nome || nome.length < 3 || nome.length > 100) return res.status(400).json({ error: 'O campo "nome" é obrigatório!' });
-        if (!telefone) return res.status(400).json({ error: 'O campo "telefone" é obrigatório!' });
-        if (!email) return res.status(400).json({ error: 'O campo "email" é obrigatório!' });
-        if (!cpf || cpf.length !== 11) return res.status(400).json({ error: 'O campo "cpf" é obrigatório! E deve conter 11 digitos' });
-        if (!cep || cep.length !== 8) return res.status(400).json({ error: 'O campo "cep" é obrigatório! E deve conter 8 digitos' });
-
-           let endereco = {};
-           if (cep) {
-               endereco = await preencherEnderecoPorCep(cep);
-               if (!endereco)
-                   return res.status(400).json({ error: true, message: 'CEP inválido.' });
-           }
-
-        const usuario = new UsuarioModel({
-            nome,
-            telefone,
-            email,
-            cpf,
-            cep: cep ? String(cep) : null,
-            logradouro: endereco.logradouro || null,
-            bairro: endereco.bairro || null,
-            localidade: endereco.localidade || null,
-            uf: endereco.uf || null,
-        });
-        const data = await usuario.criar();
-
-        res.status(201).json({ message: 'Registro criado com sucesso!', data });
-    } catch (error) {
-        console.error('ERRO REAL DO PRISMA:', error.message);
-        
-        // Verifica se o erro é o P2002 (Código do Prisma para dados duplicados)
-        if (error.code === 'P2002' || error.message.includes('Unique constraint failed')) {
-            
-            // Mensagem padrão caso o banco de dados não diga qual foi a coluna
-            let campoDuplicado = 'CPF, E-mail ou Telefone'; 
-            
-            // Tenta descobrir o campo exato (funciona melhor em PostgreSQL/MySQL)
-            if (error.meta && error.meta.target) {
-                const detalhes = error.meta.target.toString().toLowerCase();
-                if (detalhes.includes('email')) campoDuplicado = 'E-mail';
-                else if (detalhes.includes('cpf')) campoDuplicado = 'CPF';
-                else if (detalhes.includes('telefone')) campoDuplicado = 'Telefone';
-            }
-
-            return res.status(400).json({ 
-                error: `Atenção: Já existe um usuário cadastrado com este ${campoDuplicado}.` 
-            });
-        }
-
-        // Se for qualquer outro erro no servidor
-        res.status(500).json({ 
-            error: 'Erro interno ao salvar o registro.', 
-            detalhe: error.message 
-        });
-    }
+  try {
+    const usuario = new UsuarioModel(req.body);
+    const data = await usuario.criar();
+    res.status(201).json({ message: "Registro criado com sucesso!", data });
+  } catch (error) {
+    tratarErro(res, error);
+  }
 };
 
 export const buscarTodos = async (req, res) => {
-    try {
-        const registros = await UsuarioModel.buscarTodos(req.query);
-
-        if (!registros || registros.length === 0) {
-            return res.status(200).json({ message: 'Nenhum registro encontrado.' });
-        }
-
-        res.json(registros);
-    } catch (error) {
-        console.error('Erro ao buscar:', error);
-        res.status(500).json({ error: 'Erro ao buscar registros.' });
-    }
+  try {
+    const registros = await UsuarioModel.buscarTodos(req.query);
+    res.json(registros);
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao buscar registros." });
+  }
 };
 
 export const buscarPorId = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        if (isNaN(id)) {
-            return res.status(400).json({ error: 'O ID enviado não é um número válido.' });
-        }
-
-        const usuario = await UsuarioModel.buscarPorId(parseInt(id));
-
-        if (!usuario) {
-            return res.status(404).json({ error: 'Registro não encontrado.' });
-        }
-
-        res.json({ data: usuario });
-    } catch (error) {
-        console.error('Erro ao buscar:', error);
-        res.status(500).json({ error: 'Erro ao buscar registro.' });
-    }
+  try {
+    const usuario = await UsuarioModel.buscarPorId(parseInt(req.params.id));
+    if (!usuario)
+      return res.status(404).json({ error: "Registro não encontrado." });
+    const clima = await usuario.buscarClimaAtual();
+    res.json({ data: usuario, clima });
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao buscar registro." });
+  }
 };
 
 export const atualizar = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
-
-        if (!req.body) {
-            return res.status(400).json({ error: 'Corpo da requisição vazio. Envie os dados!' });
-        }
-
-        const usuario = await UsuarioModel.buscarPorId(parseInt(id));
-
-        if (!usuario) {
-            return res.status(404).json({ error: 'Registro não encontrado para atualizar.' });
-        }
-
-        if (req.body.nome !== undefined) usuario.nome = req.body.nome;
-        if (req.body.telefone !== undefined) usuario.telefone = req.body.telefone;
-        if (req.body.email !== undefined) usuario.email = req.body.email;
-        if (req.body.cpf !== undefined) usuario.cpf = req.body.cpf;
-        if (req.body.cep !== undefined) usuario.cep = req.body.cep;
-
-
-        const data = await usuario.atualizar();
-
-        res.json({ message: `O registro "${data.nome}" foi atualizado com sucesso!`, data });
-    } catch (error) {
-        console.error('Erro ao atualizar:', error);
-        res.status(500).json({ error: 'Erro ao atualizar registro.' });
-    }
+  try {
+    const usuarioExistente = await UsuarioModel.buscarPorId(
+      parseInt(req.params.id),
+    );
+    if (!usuarioExistente)
+      return res.status(404).json({ error: "Registro não encontrado." });
+    Object.assign(usuarioExistente, req.body);
+    const data = await usuarioExistente.atualizar();
+    res.json({ message: "Registro atualizado!", data });
+  } catch (error) {
+    tratarErro(res, error);
+  }
 };
 
 export const deletar = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        if (isNaN(id)) return res.status(400).json({ error: 'ID inválido.' });
-
-        const usuario = await UsuarioModel.buscarPorId(parseInt(id));
-
-        if (!usuario) {
-            return res.status(404).json({ error: 'Registro não encontrado para deletar.' });
-        }
-        if (usuario.pedidos?.[0]?.status === "ABERTO") {
-            return res
-                .status(404)
-                .json({ error: 'Não é possível deletar usuário quando tem um pedido em aberto.' });
-        }
-
-        await usuario.deletar();
-
-        res.json({ message: `O registro "${usuario.nome}" foi deletado com sucesso!`, deletado: usuario });
-    } catch (error) {
-        console.error('Erro ao deletar:', error);
-        res.status(500).json({ error: 'Erro ao deletar registro.' });
-    }
+  try {
+    const usuario = await UsuarioModel.buscarPorId(parseInt(req.params.id));
+    if (!usuario)
+      return res.status(404).json({ error: "Registro não encontrado." });
+    await usuario.deletar();
+    res.json({ message: "Registro deletado com sucesso!" });
+  } catch (error) {
+    tratarErro(res, error);
+  }
 };
